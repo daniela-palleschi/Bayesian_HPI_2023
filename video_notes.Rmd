@@ -1,17 +1,34 @@
 ---
 title: "HPI Bayesian Course"
-output: 
+output:
   html_notebook:
-    number_sections: true
-    toc: true
+    number_sections: yes
+    toc: yes
     toc_depth: 2
-    toc_float: true
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: yes
+    df_print: paged
 ---
 
+# Set options {-}
 
 ```{r}
 options(scipen = 999)
+
 ```
+
+# Terms and abbreviations {-}
+
+- *k*: number of successes
+- *n*: number of trials
+- $\theta$: the probability of success
 
 # Week 1
 
@@ -118,25 +135,44 @@ round(
 
 ### My summary notes
 
-captiond-p-q-r family of functions
+d-p-q-r family of functions
 
-|-----------|-----------------------|------------------------------------|
-| function  | function(arguments)   | outcome                            |
-|-----------|-----------------------|------------------------------------|
-| Bernoulli | rbern(n,prob)         | generate random data          |
-|           |-----------------------|------------------------------------|
-|           | dbinom(x,prob)        | PMF: probability of outcome x      |
-|           |-----------------------|------------------------------------|
-|           | pbern(q,prob)         | CMF: cumulative PDF of <=x         |
-|-----------|-----------------------|------------------------------------|
-| Binomial  | rbinom(n, size, prob) | generate random data with n = of successes            |
-|           |-----------------------|------------------------------------|
-|           | dbinom(x,size,prob)   | PMF: probability of outcome x      |
-|           |-----------------------|------------------------------------|
-|           | pbinom(q,size,prob)   | CMF: cumulative PDF of <=x         |
-|           |-----------------------|------------------------------------|
-|           | qbinom(prob,size)     | inverse CMF: cumulative PMF of >=x |
-|-----------|-----------------------|------------------------------------|
++-----------+-------------------------+--------------------------------------------------+
+| RV        | Function(arguments)     | Outcome                                          |
++-----------+-------------------------+--------------------------------------------------+
+| Bernoulli | `rbern(n,prob)`         | generate random data                             |
+|           +-------------------------+--------------------------------------------------+
+|           | `dbern(x,prob)`         | PDF: probability of outcome x                    |
+|           +-------------------------+--------------------------------------------------+
+|           | `pbern(q,prob)`         | CDF: cumulative PDF of <=x                       |
++-----------+-------------------------+--------------------------------------------------+
+| Binomial  | `rbinom(n, size, prob)` | generate random data with n = of successes       |
+|           +-------------------------+--------------------------------------------------+
+|           | `dbinom(q,size,prob)`   | PMF: probability of outcome x                    |
+|           +-------------------------+--------------------------------------------------+
+|           | `pbinom(q,size,prob)`   | CMF: cumulative PDF of <=x                       |
+|           +-------------------------+--------------------------------------------------+
+|           | `qbinom(prob,size)`     | inverse CMF: cumulative PMF of >=x               |
++-----------+-------------------------+--------------------------------------------------+
+| normal    | `rnorm(n,mean,sd)`      | generate random data                             |
+|           +-------------------------+--------------------------------------------------+
+|           | `dnorm(x,mean,sd)`      | PDF: probability of outcome x                    |
+|           +-------------------------+--------------------------------------------------+
+|           | `pnorm(q,mean,sd)`      | CDF: cumulative PDF of <=x                       |
+|           +-------------------------+--------------------------------------------------+
+|           | `pnorm(q,mean,sd,`      | inverse CDF: cumulative PDF of >=x               |
+|           |       `lower.tail=F)`   |                                                  |
+|           +-------------------------+--------------------------------------------------+
+|           | `qnorm(prob,size)`      | Compute quantiles corresponding to probabilities |
++-----------+-------------------------+--------------------------------------------------+
+
+| RV        | function(arguments)   | outcome                            |
+|:-----------|:-----------------------|:------------------------------------|
+| Binomial  | `rnorm(n,mean,sd)` | generate random data           |
+|           | `dnorm(x,mean,sd)`   | PDF: probability of outcome x      |
+|           | `pnorm(q,mean,sd)`   | CDF: cumulative PDF of <=x         |
+|           | `pnorm(q,mean,sd)`<br> `lower.tail = F`    | inverse CDF: cumulative PDF of >=x         |
+|           | `qnorm(prob,mean,sd)`     | Compute quantiles corresponding to probabilities |
 
 ## Continuous random variables (PDFs)
 
@@ -178,7 +214,6 @@ pnorm(q = 2,
       lower.tail=F,
       mean = 0,
       sd = 1) # don't look the left (equal to or less than q), but the right (equal or greater than q)
-      )
 ```
 
 `qnorm(p,mean,sd))`: Compute quantiles corresponding to probabilities using the inverse of the CDF
@@ -200,19 +235,7 @@ dnorm(x = 2,
 ```
 
 
-| RV        | function(arguments)   | outcome                            |
-|:-----------|:-----------------------|:------------------------------------|
-| Binomial  | `rnorm(n,mean,sd)` | generate random data           |
-|           | `dnorm(x,mean,sd)`   | PDF: probability of outcome x      |
-|           | `pnorm(q,mean,sd)`   | CDF: cumulative PDF of <=x         |
-|           | `pnorm(q,mean,sd)`<br> `lower.tail = F`    | inverse CDF: cumulative PDF of >=x         |
-|           | `qnorm(prob,mean,sd)`     | Compute quantiles corresponding to probabilities |
 
-
-|   Source    |  df  |   Sum of Sq   |    Mean Sq    |    F   |  $Pr(>F_{1,29})$    |
-|:------------|-----:|--------------:|--------------:|-------:|--------------------:|
-|  Girth      |  *1* |  7581.8       |  7581.8       | 419.26 |  **< 2.2e-16**      |
-|  Residual   |  29  |  524.3        |   18.1        |        |                     |
 
 ### Normal distribution quiz
 
@@ -228,3 +251,33 @@ Q2: Given a standard normal distribution, what is the probability of getting a v
 pnorm(-3, lower.tail=F)
 ```
 
+## Maximum Likelihood estimates
+
+***Spoiler:*** it's pretty much the mean/mode/median of normally distributed data (where the three be the same); gives us the most likely value that the parameter $\theta$ has *given the data*
+
+-  the 'expectation' (discrete case)
+  - if you were to do an experment with a larger and larger sample size, you'd get closer to the expected value (e.g., value of .5 successes in repeated coin tosses)
+  
+  - we can estimate $\theta$ ($\theta$-hat), but we'll never know the true value of $\theta$
+
+From my book notes from SMLP 2022:
+
+> In real exerimental situations we never know the true value of $\theta$ (probability of an outcome), but it can be derived from the data: *$\theta$ hat = k/n*, where *k* = number of observed successess, *n* = number of trials, and *$\theta$ hat* = observed proportion of successes. *$\theta$ hat* = ***maximum likelihood estimate*** of the true but unknown parameter *$\theta$*. Basically, the **mean** of the binomial distribution. The **variance** can also be estimated by computing *(n($\theta$))(1 - $\theta$)*. These estimates can be be used for statistical inference.
+
+From my class notes from SMLP 2022:
+
+> -   common misunderstanding of the **maximum likelihood estimate (MLE)**: it doens't represent the true value of $\theta$, because it's the MLE (best guess) for the *data you have*
+>    -   but the MLE will be closer to the true value of $\theta$ assample size increases
+
+- e.g., the PMF (binomial) contains three terms:
+  - *k*: number of successes
+  - *n*: total number of trials
+  - *$\theta$*: probability of success (can have values between 0 and 1)
+- the PMF is a function of these parameters, based on the data (given our data we know the values of *k* and *n* so they are fixed quantities and no longer random), so $\theta$ can be treated as a variable
+  
+- the **likelihood function** is the PMF (or PDF) as a function of the parameters, rather than a function of the data
+
+- the MLE from a particular *sample* of data doesn't necessarily give us an accurate estimate of the true value of $\theta$ (because it's just a sample, of course)
+  - larger sample sizes get MLEs that more accurately represent the true value of $\theta$ (again, duh because of the point made above regarding the expectation)
+  
+  ## Bivariate and multivariate distributions (Discrete case)
