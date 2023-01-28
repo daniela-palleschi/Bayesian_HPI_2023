@@ -1,0 +1,232 @@
+---
+title: "HPI Bayesian Course"
+output: 
+  html_notebook:
+    number_sections: true
+    toc: true
+    toc_depth: 2
+    toc_float: true
+---
+
+\toc
+
+```{r}
+options(scipen = 999)
+```
+
+
+# Week 1
+
+## Discrete random variables
+
+- random variables are functions that map one set to the set of real numbers
+  - associates to each outcome to a particular real number
+  
+There's a set of events that *can* happen, like tossing a coin. A random variable maps each of these possible events to a real number. In tossing a coin until you get a heads, a random variable would be the number of tosses until you get a 'success' (heads). In principle it could be an infinite set, bcause you could in theory toss the coin an infinite number of times without ever getting a heads (though this is extremely improbable).
+
+Alternatively, the random variable can be a finite set if we are interested in looking whether *one* toss results in a head or a tails.
+
+PMF: probability mass function, PDF: probability density function
+
+- PMF = for discrete distributions
+- PDF: for continuous
+- CDF: cumulative distribution function; gives a mapping from a particular numerical value to a probability; means the probability of getting that number or something less than it.
+
+Simulate tossing a coin 10 times with probability of heads = 0.5, with a Bernoulli random variable.
+
+```{r, eval = T, echo = T}
+# simulate tossing a coin 10 times
+extraDistr::rbern(n = 10, prob = .5)
+```
+
+What's the probablity of getting a tails or a heads? The d-family of functions:
+
+```{r}
+extraDistr::dbern(0,prob=.5)
+
+extraDistr::dbern(1,prob=.5)
+```
+
+Cumulative probability distribution function: the p-family of functions
+
+```{r}
+# probability distribution function
+
+## for whichever case we coded as 0
+extraDistr::pbern(0,.5)
+
+## for whichever case we coded as 1
+extraDistr::pbern(1,.5)
+```
+
+## Discrete random variables: the binomial
+
+When we toss a coin only once, this is a Bernoulli random variable. If we toss the coin more than once, this is a *binomial*. Both Bernoulli and Binomial have a PMF associated with them.
+
+```{r}
+# generate random binomial data
+rbinom(n = 10, size = 1, prob = .5)
+```
+
+```{r}
+# compute probabilites of a particular outcome
+probs <- round(dbinom(0:10, size = 10, prob = .5),3); probs
+x <- 0:10
+rbind(x,probs)
+```
+
+```{r}
+# compute cumulative probabilities of all possible outcomes
+pbinom(0:10, size=10, prob = .5)
+```
+
+Compute quantiles using the inverse of the CDF: what is the quantile q such that the probability of X is greater than x?
+
+```{r}
+# generate distribution (0:10 outcomes or less, for 10 repetitions, with probability .5)
+probs <- pbinom(0:10,size = 10, prob = .5)
+
+
+# compute the inverse CDF; qbinom takes as its input a probability of an outcome and outputs the inverse
+qbinom(probs, size = 10, prob=.5)
+```
+
+### Binomial distribution quiz
+
+Q1: Consider participating in a lottery ten times. Each time the probability of winning a prize is 0.10. What is the probability of winning exactly 5 times?
+
+```{r}
+# use dbinom to compute PDF
+round(
+  dbinom(5, # produce probs for 5 successes
+       size = 10, # out of 10 tries/trials
+       prob = .1 # with a prob of success on each trial = .1
+       ),
+3)
+```
+
+Q2: Consider lending 10 books from a library. The probability of getting a damaged book is 0.15. Compute the cumulative probability of having 2 or fewer damaged books rounded to three digits.
+
+```{r}
+# use pbinom to compute CDF
+round(
+  pbinom(2, # successes
+    size = 10, # out of 10
+    prob = .15 # with prob of .15
+    
+  ),
+3)
+```
+
+### My summary notes
+
+captiond-p-q-r family of functions
+
+|-----------|-----------------------|------------------------------------|
+| function  | function(arguments)   | outcome                            |
+|-----------|-----------------------|------------------------------------|
+| Bernoulli | rbern(n,prob)         | generate random data          |
+|           |-----------------------|------------------------------------|
+|           | dbinom(x,prob)        | PMF: probability of outcome x      |
+|           |-----------------------|------------------------------------|
+|           | pbern(q,prob)         | CMF: cumulative PDF of <=x         |
+|-----------|-----------------------|------------------------------------|
+| Binomial  | rbinom(n, size, prob) | generate random data with n = of successes            |
+|           |-----------------------|------------------------------------|
+|           | dbinom(x,size,prob)   | PMF: probability of outcome x      |
+|           |-----------------------|------------------------------------|
+|           | pbinom(q,size,prob)   | CMF: cumulative PDF of <=x         |
+|           |-----------------------|------------------------------------|
+|           | qbinom(prob,size)     | inverse CMF: cumulative PMF of >=x |
+|-----------|-----------------------|------------------------------------|
+
+## Continuous random variables (PDFs)
+
+- in discrete RV cases, we compute the probability of a *particular* outcome
+- in continous RV cases, probability is defined by the ***area under the curve*** (AUC)
+- we use the cumulative distribution function associated with a normal distribution to compute this AUC; i.e., the probability of observing a value between x1 and x2
+
+## Continous RVs: the normal distribution
+
+- the standard normal distribution:
+  - Normal(mean = 0, sd = 1)
+  - Prob(-1 < X < 1) = 68%
+  - Prob(-1.96 < X < 1.96) = 95%
+  - Prob(-3 < X <3) = 99.7%
+
+- for any other normal distribution (with varying mean and sd):
+  - Prob(-1\*sd < X < 1\*sd ) = 68%
+  - Prob(-1.96\*sd  < X < 1.96\*sd ) = 95%
+  - Prob(-3\*sd  < X <3\*sd ) = 99.7%
+- the continuous vales on the x-axis (here, |/- 1,2,3) are the **quantiles**
+
+`rnorm(n,mean,sd)`: Generate random data usin
+```{r}
+rnorm(n=5,
+      mean = 0,
+      sd = 1)
+```
+
+`pnorm(q)`: Compute probabilities using CDF
+```{r}
+pnorm(q = 2,
+      mean = 0,
+      sd = 1)
+```
+
+`pnorm(q,lower.tail=F)`: Compute inverse probabilities using CDF
+```{r}
+pnorm(q = 2,
+      lower.tail=F,
+      mean = 0,
+      sd = 1) # don't look the left (equal to or less than q), but the right (equal or greater than q)
+      )
+```
+
+`qnorm(p,mean,sd))`: Compute quantiles corresponding to probabilities using the inverse of the CDF
+
+```{r}
+qnorm(p = 0.9772499,
+      mean = 0,
+      sd = 1)
+```
+
+`dnorm()`: Compute the probability ***density*** for a quantile value
+  - not the probability of a particular outcome
+  - rather the **density** of that particular value, i.e., the y-axis value
+
+```{r}
+dnorm(x = 2,
+      mean = 0,
+      sd = 1)
+```
+
+
+| RV        | function(arguments)   | outcome                            |
+|:-----------|:-----------------------|:------------------------------------|
+| Binomial  | `rnorm(n,mean,sd)` | generate random data           |
+|           | `dnorm(x,mean,sd)`   | PDF: probability of outcome x      |
+|           | `pnorm(q,mean,sd)`   | CDF: cumulative PDF of <=x         |
+|           | `pnorm(q,mean,sd)`<br> `lower.tail = F`    | inverse CDF: cumulative PDF of >=x         |
+|           | `qnorm(prob,mean,sd)`     | Compute quantiles corresponding to probabilities |
+
+
+|   Source    |  df  |   Sum of Sq   |    Mean Sq    |    F   |  $Pr(>F_{1,29})$    |
+|:------------|-----:|--------------:|--------------:|-------:|--------------------:|
+|  Girth      |  *1* |  7581.8       |  7581.8       | 419.26 |  **< 2.2e-16**      |
+|  Residual   |  29  |  524.3        |   18.1        |        |                     |
+
+### Normal distribution quiz
+
+Q1: Given a standard normal distribution, what is the probability of getting a value lower than -3?
+
+```{r}
+pnorm(-3)
+```
+
+Q2: Given a standard normal distribution, what is the probability of getting a value higher than -3?
+
+```{r}
+pnorm(-3, lower.tail=F)
+```
+
