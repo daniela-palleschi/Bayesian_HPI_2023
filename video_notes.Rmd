@@ -8,7 +8,6 @@ output:
     toc_float: true
 ---
 
-\toc
 
 ```{r}
 options(scipen = 999)
