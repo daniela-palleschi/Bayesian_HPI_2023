@@ -8,6 +8,10 @@ output:
     toc_float: true
 ---
 
+# How to follow
+
+All code should be added into the ***Terminal*** tab (in the Console pane in RStudio). Alternatively, you don't need to use the Terminal at all, as RStudio adds a Git tab to the Environment pane. For a much more in depth (and better) guide, follow the amazing https://happygitwithr.com/index.html by the even more amazing Jenny Bryan.
+
 # Taken for granted
 
 I take for granted:
@@ -70,12 +74,15 @@ echo Slides/ >> .gitignore
 If you've already started working on the project locally, you can just drag-and-drop your files/folders into the Terminal
 
 ```{r, eval = F, echo = T}
+# stage change (need to do it every time)
 add filename.Rmd
-
+# commit these changes to git
 commit -m "message about commit"
-
+# check the status
 status
-
+# push these changes to remote repo
 push
 ```
+
+Alternatively, you don't need to use the Terminal at all (but it's good practice to know how to in order to understand the logic/workflow). In the 'Environment' pane, you should see a 'Git' tab (if git is indeed set up). You can tick the 'Staged' button for all files whose changes you want to commit. Then click 'commit'. A message window will come up, add your message and click 'Commit'. Then, Click 'Push' to push to GH.
 

@@ -13,7 +13,6 @@ output:
 options(scipen = 999)
 ```
 
-
 # Week 1
 
 ## Discrete random variables

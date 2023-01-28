@@ -2893,8 +2893,16 @@ border-radius: 0px;
 
 
 <!-- rnb-text-begin -->
-<div id="taken-for-granted" class="section level1" number="1">
-<h1><span class="header-section-number">1</span> Taken for granted</h1>
+<div id="how-to-follow" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> How to follow</h1>
+<p>All code should be added into the <strong><em>Terminal</em></strong>
+tab (in the Console pane in RStudio). Alternatively, you don’t need to
+use the Terminal at all, as RStudio adds a Git tab to the Environment
+pane. For a much more in depth (and better) guide, follow the amazing <a href="https://happygitwithr.com/index.html" class="uri">https://happygitwithr.com/index.html</a> by the even more
+amazing Jenny Bryan.</p>
+</div>
+<div id="taken-for-granted" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Taken for granted</h1>
 <p>I take for granted:</p>
 <p>-git is already installed on my machine - I have a GitHub account -
 already got RStudio set up with an SSH key (Tools &gt; Global Options
@@ -2905,8 +2913,8 @@ url and not the HTTPS (which would require a Personal Access Token
 chapter from <a href="https://happygitwithr.com/index.html" class="uri">https://happygitwithr.com/index.html</a></p>
 <p>If you’ve done all that, follow along from here <a href="https://happygitwithr.com/rstudio-git-github.html#rstudio-git-github" class="uri">https://happygitwithr.com/rstudio-git-github.html#rstudio-git-github</a></p>
 </div>
-<div id="setting-up" class="section level1" number="2">
-<h1><span class="header-section-number">2</span> Setting up</h1>
+<div id="setting-up" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Setting up</h1>
 <p>Steps:</p>
 <ol style="list-style-type: decimal">
 <li>Create a repo in GitHub</li>
@@ -2945,8 +2953,8 @@ git push
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<div id="other-commands" class="section level2" number="2.1">
-<h2><span class="header-section-number">2.1</span> Other commands</h2>
+<div id="other-commands" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Other commands</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjpbIiMgcHJpbnQgd29ya2luZyBkaXJlY3Rvcnk7IHNob3VsZCBiZSB0byB5b3VyIHByb2plY3QgZm9sZGVyIiwicHdkIiwiIyBjaGFuZ2UgZGlyZWN0b3J5LCBpbiBjYXNlIG5vdCB5b3VyIHByb2plY3QgZm9sZGVyIiwiY2QiLCIjIGxpc3QgYWxsIGZpbGVzIGluIFdEIiwibHMiLCIjIGxpc3QgYWxsIGZpbGVzIGluY2x1ZGluZyBpZ25vcmQgb25lcyIsImxzIC1hIiwiIyBjaGVjayBzdGF0dXMiLCJzdGF0dXMiLCIjIGFkZCBmaWxlL2ZvbGRlciB0byBnaXRpZ25vcmUgKHNvIGdpdCB3aWxsIGlnbm9yZSBpdCkiLCJlY2hvIFNsaWRlcy8gPj4gLmdpdGlnbm9yZSJdfQ== -->
@@ -2967,27 +2975,35 @@ echo Slides/ &gt;&gt; .gitignore</code></pre>
 <!-- rnb-text-begin -->
 </div>
 </div>
-<div id="keeping-up-changes" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> Keeping up changes</h1>
+<div id="keeping-up-changes" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Keeping up changes</h1>
 <p>If you’ve already started working on the project locally, you can
 just drag-and-drop your files/folders into the Terminal</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjpbImFkZCBmaWxlbmFtZS5SbWQiLCIiLCJjb21taXQgLW0gXCJtZXNzYWdlIGFib3V0IGNvbW1pdFwiIiwiIiwic3RhdHVzIiwiIiwicHVzaCJdfQ== -->
-<pre class="r"><code>add filename.Rmd
-
+<!-- rnb-source-begin eyJkYXRhIjpbIiMgc3RhZ2UgY2hhbmdlIChuZWVkIHRvIGRvIGl0IGV2ZXJ5IHRpbWUpIiwiYWRkIGZpbGVuYW1lLlJtZCIsIiMgY29tbWl0IHRoZXNlIGNoYW5nZXMgdG8gZ2l0IiwiY29tbWl0IC1tIFwibWVzc2FnZSBhYm91dCBjb21taXRcIiIsIiMgY2hlY2sgdGhlIHN0YXR1cyIsInN0YXR1cyIsIiMgcHVzaCB0aGVzZSBjaGFuZ2VzIHRvIHJlbW90ZSByZXBvIiwicHVzaCJdfQ== -->
+<pre class="r"><code># stage change (need to do it every time)
+add filename.Rmd
+# commit these changes to git
 commit -m &quot;message about commit&quot;
-
+# check the status
 status
-
+# push these changes to remote repo
 push</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>Alternatively, you don’t need to use the Terminal at all (but it’s
+good practice to know how to in order to understand the logic/workflow).
+In the ‘Environment’ pane, you should see a ‘Git’ tab (if git is indeed
+set up). You can tick the ‘Staged’ button for all files whose changes
+you want to commit. Then click ‘commit’. A message window will come up,
+add your message and click ‘Commit’. Then, Click ‘Push’ to push to
+GH.</p>
 <!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiSFBJIEJheWVzaWFuIENvdXJzZSIKb3V0cHV0OiAKICBodG1sX25vdGVib29rOgogICAgbnVtYmVyX3NlY3Rpb25zOiB0cnVlCiAgICB0b2M6IHRydWUKICAgIHRvY19kZXB0aDogMgogICAgdG9jX2Zsb2F0OiB0cnVlCi0tLQoKIyBUYWtlbiBmb3IgZ3JhbnRlZAoKSSB0YWtlIGZvciBncmFudGVkOgoKLWdpdCBpcyBhbHJlYWR5IGluc3RhbGxlZCBvbiBteSBtYWNoaW5lCi0gSSBoYXZlIGEgR2l0SHViIGFjY291bnQKLSBhbHJlYWR5IGdvdCBSU3R1ZGlvIHNldCB1cCB3aXRoIGFuIFNTSCBrZXkgKFRvb2xzID4gR2xvYmFsIE9wdGlvbnMgPiBHaXQpLiAKICAtIHdpdGggYW4gU1NIIGtleSwgSSBzaG91bGQgYWx3YXlzIG1ha2Ugc3VyZSB0byBjb3B5IHRoZSBTU0ggdXJsIGFuZCBub3QgdGhlIEhUVFBTICh3aGljaCB3b3VsZCByZXF1aXJlIGEgUGVyc29uYWwgQWNjZXNzIFRva2VuIChQQVQpKSEgCgpJZiB0aGVzZSBzdGVwcyBoYXZlbid0IGFscmVhZHkgYmVlbiB0YWtlbiwgY2hlY2sgb3V0IHRoZSBmaXJzdCBjaGFwdGVyIGZyb20gaHR0cHM6Ly9oYXBweWdpdHdpdGhyLmNvbS9pbmRleC5odG1sCgpJZiB5b3UndmUgZG9uZSBhbGwgdGhhdCwgZm9sbG93IGFsb25nIGZyb20gaGVyZSBodHRwczovL2hhcHB5Z2l0d2l0aHIuY29tL3JzdHVkaW8tZ2l0LWdpdGh1Yi5odG1sI3JzdHVkaW8tZ2l0LWdpdGh1YgoKIyBTZXR0aW5nIHVwCgpTdGVwczoKCjEuIENyZWF0ZSBhIHJlcG8gaW4gR2l0SHViCiAgLSBjbGljayAnY3JlYXRlIFJFQURNRS5tZCcKMi4gQ3JlYXRlIGEgbmV3IFJQcm9qZWN0IHdpdGggVmVyc2lvbiBDb250cm9sCiAgLSBhZGQgdGhlIFVSTCBmcm9tIHlvdXIgR2l0SHViIHJlcG8sIHByZXNzIHRoZSBncmVlbiAnQ2xvbmUgPD4nIGJ1dHRvbgogIC0gY29weSB0aGUgdXJsLCBidXQgIG1ha2Ugc3VyZSB5b3UgY2hvb3NlIHRoZSByZWxldmFudCBmb3JtYXQhIFNTSCBpZiB5b3UndmUgZ290IGFuIFNTSCBrZXkgc2V0IHVwLCBvciBIVFRQUyBpZiB5b3UncmUgdXNpbmcgYSBwZXJzb25hbCBhY2Nlc3MgdG9rZW4gKFBBVCkKICAtIGluIHRoZSBUZXJtaW5hbCBpbiBSU3R1ZGlvLCBhZGQ6CjMuIHN0YWdlIChhZGQpLCBjb21taXQsIHNvbWUgYXJiaXRyYXkgY2hhbmdlcwoKYGBge3IsIGV2YWwgPSBGLCBlY2hvID0gVH0KIyBhZGQgYSBsaW5lIHRvIHlvdXIgUkVBRE1FCmVjaG8gIlRoaXMgaXMgYSBsaW5lIGZyb20gUlN0dWRpbyIgPj4gUkVBRE1FLm1kCiMgY2hlY2sgdGhlIHN0YXR1cwpnaXQgc3RhdHVzCiMgc3RhZ2UgdGhlIGNoYW5nZQpnaXQgYWRkIFJFQURNRS5tZAojIGNvbW1pdCB0aGUgY2hhbmdlIGFuZCBhZGQgYSBtZXNzYWdlCmdpdCBjb21taXQgLW0gImZpcnN0IGNvbW1pdCBmcm9tIFJTdHVkaW8iCiMgcHVzaCB0aGUgY2hhbmdlIHRvIEdpdEh1YgpnaXQgcHVzaAojIG5vdywgZ28gcmVmcmVzaCB5b3VyIEdIIHJlcG8gYW5kIHNlZSB0aGUgY2hhbmdlCmBgYAoKIyMgT3RoZXIgY29tbWFuZHMKCmBgYHtyLCBldmFsID0gRiwgZWNobyA9IFR9CiMgcHJpbnQgd29ya2luZyBkaXJlY3Rvcnk7IHNob3VsZCBiZSB0byB5b3VyIHByb2plY3QgZm9sZGVyCnB3ZAojIGNoYW5nZSBkaXJlY3RvcnksIGluIGNhc2Ugbm90IHlvdXIgcHJvamVjdCBmb2xkZXIKY2QKIyBsaXN0IGFsbCBmaWxlcyBpbiBXRApscwojIGxpc3QgYWxsIGZpbGVzIGluY2x1ZGluZyBpZ25vcmQgb25lcwpscyAtYQojIGNoZWNrIHN0YXR1cwpzdGF0dXMKIyBhZGQgZmlsZS9mb2xkZXIgdG8gZ2l0aWdub3JlIChzbyBnaXQgd2lsbCBpZ25vcmUgaXQpCmVjaG8gU2xpZGVzLyA+PiAuZ2l0aWdub3JlCmBgYAoKCiMgS2VlcGluZyB1cCBjaGFuZ2VzCgpJZiB5b3UndmUgYWxyZWFkeSBzdGFydGVkIHdvcmtpbmcgb24gdGhlIHByb2plY3QgbG9jYWxseSwgeW91IGNhbiBqdXN0IGRyYWctYW5kLWRyb3AgeW91ciBmaWxlcy9mb2xkZXJzIGludG8gdGhlIFRlcm1pbmFsCgpgYGB7ciwgZXZhbCA9IEYsIGVjaG8gPSBUfQphZGQgZmlsZW5hbWUuUm1kCgpjb21taXQgLW0gIm1lc3NhZ2UgYWJvdXQgY29tbWl0IgoKc3RhdHVzCgpwdXNoCmBgYAoK</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiSFBJIEJheWVzaWFuIENvdXJzZSIKb3V0cHV0OiAKICBodG1sX25vdGVib29rOgogICAgbnVtYmVyX3NlY3Rpb25zOiB0cnVlCiAgICB0b2M6IHRydWUKICAgIHRvY19kZXB0aDogMgogICAgdG9jX2Zsb2F0OiB0cnVlCi0tLQoKIyBIb3cgdG8gZm9sbG93CgpBbGwgY29kZSBzaG91bGQgYmUgYWRkZWQgaW50byB0aGUgKioqVGVybWluYWwqKiogdGFiIChpbiB0aGUgQ29uc29sZSBwYW5lIGluIFJTdHVkaW8pLiBBbHRlcm5hdGl2ZWx5LCB5b3UgZG9uJ3QgbmVlZCB0byB1c2UgdGhlIFRlcm1pbmFsIGF0IGFsbCwgYXMgUlN0dWRpbyBhZGRzIGEgR2l0IHRhYiB0byB0aGUgRW52aXJvbm1lbnQgcGFuZS4gRm9yIGEgbXVjaCBtb3JlIGluIGRlcHRoIChhbmQgYmV0dGVyKSBndWlkZSwgZm9sbG93IHRoZSBhbWF6aW5nIGh0dHBzOi8vaGFwcHlnaXR3aXRoci5jb20vaW5kZXguaHRtbCBieSB0aGUgZXZlbiBtb3JlIGFtYXppbmcgSmVubnkgQnJ5YW4uCgojIFRha2VuIGZvciBncmFudGVkCgpJIHRha2UgZm9yIGdyYW50ZWQ6CgotZ2l0IGlzIGFscmVhZHkgaW5zdGFsbGVkIG9uIG15IG1hY2hpbmUKLSBJIGhhdmUgYSBHaXRIdWIgYWNjb3VudAotIGFscmVhZHkgZ290IFJTdHVkaW8gc2V0IHVwIHdpdGggYW4gU1NIIGtleSAoVG9vbHMgPiBHbG9iYWwgT3B0aW9ucyA+IEdpdCkuIAogIC0gd2l0aCBhbiBTU0gga2V5LCBJIHNob3VsZCBhbHdheXMgbWFrZSBzdXJlIHRvIGNvcHkgdGhlIFNTSCB1cmwgYW5kIG5vdCB0aGUgSFRUUFMgKHdoaWNoIHdvdWxkIHJlcXVpcmUgYSBQZXJzb25hbCBBY2Nlc3MgVG9rZW4gKFBBVCkpISAKCklmIHRoZXNlIHN0ZXBzIGhhdmVuJ3QgYWxyZWFkeSBiZWVuIHRha2VuLCBjaGVjayBvdXQgdGhlIGZpcnN0IGNoYXB0ZXIgZnJvbSBodHRwczovL2hhcHB5Z2l0d2l0aHIuY29tL2luZGV4Lmh0bWwKCklmIHlvdSd2ZSBkb25lIGFsbCB0aGF0LCBmb2xsb3cgYWxvbmcgZnJvbSBoZXJlIGh0dHBzOi8vaGFwcHlnaXR3aXRoci5jb20vcnN0dWRpby1naXQtZ2l0aHViLmh0bWwjcnN0dWRpby1naXQtZ2l0aHViCgojIFNldHRpbmcgdXAKClN0ZXBzOgoKMS4gQ3JlYXRlIGEgcmVwbyBpbiBHaXRIdWIKICAtIGNsaWNrICdjcmVhdGUgUkVBRE1FLm1kJwoyLiBDcmVhdGUgYSBuZXcgUlByb2plY3Qgd2l0aCBWZXJzaW9uIENvbnRyb2wKICAtIGFkZCB0aGUgVVJMIGZyb20geW91ciBHaXRIdWIgcmVwbywgcHJlc3MgdGhlIGdyZWVuICdDbG9uZSA8PicgYnV0dG9uCiAgLSBjb3B5IHRoZSB1cmwsIGJ1dCAgbWFrZSBzdXJlIHlvdSBjaG9vc2UgdGhlIHJlbGV2YW50IGZvcm1hdCEgU1NIIGlmIHlvdSd2ZSBnb3QgYW4gU1NIIGtleSBzZXQgdXAsIG9yIEhUVFBTIGlmIHlvdSdyZSB1c2luZyBhIHBlcnNvbmFsIGFjY2VzcyB0b2tlbiAoUEFUKQogIC0gaW4gdGhlIFRlcm1pbmFsIGluIFJTdHVkaW8sIGFkZDoKMy4gc3RhZ2UgKGFkZCksIGNvbW1pdCwgc29tZSBhcmJpdHJheSBjaGFuZ2VzCgpgYGB7ciwgZXZhbCA9IEYsIGVjaG8gPSBUfQojIGFkZCBhIGxpbmUgdG8geW91ciBSRUFETUUKZWNobyAiVGhpcyBpcyBhIGxpbmUgZnJvbSBSU3R1ZGlvIiA+PiBSRUFETUUubWQKIyBjaGVjayB0aGUgc3RhdHVzCmdpdCBzdGF0dXMKIyBzdGFnZSB0aGUgY2hhbmdlCmdpdCBhZGQgUkVBRE1FLm1kCiMgY29tbWl0IHRoZSBjaGFuZ2UgYW5kIGFkZCBhIG1lc3NhZ2UKZ2l0IGNvbW1pdCAtbSAiZmlyc3QgY29tbWl0IGZyb20gUlN0dWRpbyIKIyBwdXNoIHRoZSBjaGFuZ2UgdG8gR2l0SHViCmdpdCBwdXNoCiMgbm93LCBnbyByZWZyZXNoIHlvdXIgR0ggcmVwbyBhbmQgc2VlIHRoZSBjaGFuZ2UKYGBgCgojIyBPdGhlciBjb21tYW5kcwoKYGBge3IsIGV2YWwgPSBGLCBlY2hvID0gVH0KIyBwcmludCB3b3JraW5nIGRpcmVjdG9yeTsgc2hvdWxkIGJlIHRvIHlvdXIgcHJvamVjdCBmb2xkZXIKcHdkCiMgY2hhbmdlIGRpcmVjdG9yeSwgaW4gY2FzZSBub3QgeW91ciBwcm9qZWN0IGZvbGRlcgpjZAojIGxpc3QgYWxsIGZpbGVzIGluIFdECmxzCiMgbGlzdCBhbGwgZmlsZXMgaW5jbHVkaW5nIGlnbm9yZCBvbmVzCmxzIC1hCiMgY2hlY2sgc3RhdHVzCnN0YXR1cwojIGFkZCBmaWxlL2ZvbGRlciB0byBnaXRpZ25vcmUgKHNvIGdpdCB3aWxsIGlnbm9yZSBpdCkKZWNobyBTbGlkZXMvID4+IC5naXRpZ25vcmUKYGBgCgoKIyBLZWVwaW5nIHVwIGNoYW5nZXMKCklmIHlvdSd2ZSBhbHJlYWR5IHN0YXJ0ZWQgd29ya2luZyBvbiB0aGUgcHJvamVjdCBsb2NhbGx5LCB5b3UgY2FuIGp1c3QgZHJhZy1hbmQtZHJvcCB5b3VyIGZpbGVzL2ZvbGRlcnMgaW50byB0aGUgVGVybWluYWwKCmBgYHtyLCBldmFsID0gRiwgZWNobyA9IFR9CiMgc3RhZ2UgY2hhbmdlIChuZWVkIHRvIGRvIGl0IGV2ZXJ5IHRpbWUpCmFkZCBmaWxlbmFtZS5SbWQKIyBjb21taXQgdGhlc2UgY2hhbmdlcyB0byBnaXQKY29tbWl0IC1tICJtZXNzYWdlIGFib3V0IGNvbW1pdCIKIyBjaGVjayB0aGUgc3RhdHVzCnN0YXR1cwojIHB1c2ggdGhlc2UgY2hhbmdlcyB0byByZW1vdGUgcmVwbwpwdXNoCmBgYAoKQWx0ZXJuYXRpdmVseSwgeW91IGRvbid0IG5lZWQgdG8gdXNlIHRoZSBUZXJtaW5hbCBhdCBhbGwgKGJ1dCBpdCdzIGdvb2QgcHJhY3RpY2UgdG8ga25vdyBob3cgdG8gaW4gb3JkZXIgdG8gdW5kZXJzdGFuZCB0aGUgbG9naWMvd29ya2Zsb3cpLiBJbiB0aGUgJ0Vudmlyb25tZW50JyBwYW5lLCB5b3Ugc2hvdWxkIHNlZSBhICdHaXQnIHRhYiAoaWYgZ2l0IGlzIGluZGVlZCBzZXQgdXApLiBZb3UgY2FuIHRpY2sgdGhlICdTdGFnZWQnIGJ1dHRvbiBmb3IgYWxsIGZpbGVzIHdob3NlIGNoYW5nZXMgeW91IHdhbnQgdG8gY29tbWl0LiBUaGVuIGNsaWNrICdjb21taXQnLiBBIG1lc3NhZ2Ugd2luZG93IHdpbGwgY29tZSB1cCwgYWRkIHlvdXIgbWVzc2FnZSBhbmQgY2xpY2sgJ0NvbW1pdCcuIFRoZW4sIENsaWNrICdQdXNoJyB0byBwdXNoIHRvIEdILgoK</div>
 
 
 </div>
