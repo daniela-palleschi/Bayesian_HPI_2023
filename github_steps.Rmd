@@ -10,32 +10,32 @@ output:
 
 # How to follow
 
-All code should be added into the ***Terminal*** tab (in the Console pane in RStudio). Alternatively, you don't need to use the Terminal at all, as RStudio adds a Git tab to the Environment pane. For a much more in depth (and better) guide, follow the amazing https://happygitwithr.com/index.html by the even more amazing Jenny Bryan.
+All code should be added into the ***Terminal*** tab (in the Console pane in RStudio). Alternatively, you don't need to use the Terminal at all, as RStudio adds a Git tab to the Environment pane. For a much more in-depth (and better) guide, follow the amazing https://happygitwithr.com/index.html by the even more amazing Jenny Bryan.
 
 # Taken for granted
 
 I take for granted:
 
--git is already installed on my machine
+- git is already installed on my machine
 - I have a GitHub account
 - already got RStudio set up with an SSH key (Tools > Global Options > Git). 
   - with an SSH key, I should always make sure to copy the SSH url and not the HTTPS (which would require a Personal Access Token (PAT))! 
 
 If these steps haven't already been taken, check out the first chapter from https://happygitwithr.com/index.html
 
-If you've done all that, follow along from here https://happygitwithr.com/rstudio-git-github.html#rstudio-git-github
+If you've done all that, follow along from here (following https://happygitwithr.com/rstudio-git-github.html#rstudio-git-github)
 
 # Setting up
 
 Steps:
 
 1. Create a repo in GitHub
-  - click 'create README.md'
+  - make sure to click 'create README.md'
 2. Create a new RProject with Version Control
   - add the URL from your GitHub repo, press the green 'Clone <>' button
   - copy the url, but  make sure you choose the relevant format! SSH if you've got an SSH key set up, or HTTPS if you're using a personal access token (PAT)
-  - in the Terminal in RStudio, add:
 3. stage (add), commit, some arbitray changes
+  - using either the Git tab, or preferably using the Terminal (see below for examples)
 
 ```{r, eval = F, echo = T}
 # add a line to your README
@@ -67,7 +67,6 @@ status
 # add file/folder to gitignore (so git will ignore it)
 echo Slides/ >> .gitignore
 ```
-
 
 # Keeping up changes
 

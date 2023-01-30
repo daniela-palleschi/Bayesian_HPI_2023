@@ -1,7 +1,14 @@
 ---
 title: "HPI Bayesian Course"
 output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: yes
+    df_print: paged
   pdf_document:
+    number_sections: yes
     toc: yes
     toc_depth: '2'
   html_notebook:
@@ -9,23 +16,55 @@ output:
     toc: yes
     toc_depth: 2
     toc_float: yes
-  html_document:
-    number_sections: yes
-    toc: yes
-    toc_depth: 2
-    toc_float: yes
-    df_print: paged
 ---
 
 # Set options {-}
 
-```{r}
-options(scipen = 999)
+```{r setup, include=FALSE}
+# set global knit options
+knitr::opts_chunk$set(echo = T,
+                      eval = T,
+                      error = F,
+                      warning = F,
+                      message = F)
 
+# suppress scientific notation
+options(scipen=999)
+
+# list of required packages
+packages <- c( #"SIN", # this package was removed from the CRAN repository
+               "MASS", "dplyr", "tidyr", "purrr", "extraDistr", "ggplot2", "loo", "bridgesampling", "brms", "bayesplot", "tictoc", "hypr", "bcogsci", "papaja", "grid", "kableExtra", "gridExtra", "lme4", "cowplot", "pdftools", "cmdstanr", "rootSolve", "rstan"
+  )
+
+# NB: if you haven't already installed bcogsci through devtools, it won't be loaded
+## Now load or install & load all
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+
+# this is also required, taken from the textbook
+
+## Save compiled models:
+rstan_options(auto_write = FALSE)
+## Parallelize the chains using all the cores:
+options(mc.cores = parallel::detectCores())
+# To solve some conflicts between packages
+select <- dplyr::select
+extract <- rstan::extract
 ```
 
 # Terms and abbreviations {-}
 
+- *PMF*: probability mass function (binomial)
+- *CMF*: cumulative mass function (binomial)
+- *PDF*: probability density function (continuous)
+- *CDF*: cumulative density function (continuous)
 - *k*: number of successes
 - *n*: number of trials
 - $\theta$: the probability of success
@@ -142,9 +181,9 @@ d-p-q-r family of functions
 +===========+=========================+==================================================+
 | Bernoulli | `rbern(n,prob)`         | generate random data                             |
 |           +-------------------------+--------------------------------------------------+
-|           | `dbern(x,prob)`         | PDF: probability of outcome x                    |
+|           | `dbern(x,prob)`         | PMF: probability of outcome x                    |
 |           +-------------------------+--------------------------------------------------+
-|           | `pbern(q,prob)`         | CDF: cumulative PDF of <=x                       |
+|           | `pbern(q,prob)`         | CMF: cumulative PDF of <=x                       |
 +-----------+-------------------------+--------------------------------------------------+
 | Binomial  | `rbinom(n, size, prob)` | generate random data with n = of successes       |
 |           +-------------------------+--------------------------------------------------+
@@ -193,14 +232,14 @@ rnorm(n=5,
       sd = 1)
 ```
 
-`pnorm(q)`: Compute probabilities using CDF
+`pnorm(q,mean,sd)`: Compute probabilities using CDF
 ```{r}
 pnorm(q = 2,
       mean = 0,
       sd = 1)
 ```
 
-`pnorm(q,lower.tail=F)`: Compute inverse probabilities using CDF
+`pnorm(q,mean,sd,lower.tail=F)`: Compute inverse probabilities using CDF
 ```{r}
 pnorm(q = 2,
       lower.tail=F,
@@ -216,7 +255,7 @@ qnorm(p = 0.9772499,
       sd = 1)
 ```
 
-`dnorm()`: Compute the probability ***density*** for a quantile value
+`dnorm(x,mean,sd)`: Compute the probability ***density*** for a quantile value
   - not the probability of a particular outcome
   - rather the **density** of that particular value, i.e., the y-axis value
 
@@ -226,7 +265,27 @@ dnorm(x = 2,
       sd = 1)
 ```
 
+```{r, echo = F, results = "asis", fig.height=4}
+curve(dnorm(x,0,1), xlim=c(-3,3), main="Normal(0,1)",
+      ylab="density")
+from.z <- -1
+to.z <- 1
 
+S.x  <- c(from.z, seq(from.z, to.z, 0.01), to.z)
+S.y  <- c(0, dnorm(seq(from.z, to.z, 0.01)), 0)
+polygon(S.x,S.y, col=rgb(1, 0, 0,0.3))
+text(-2,0.15,pos=4,cex=1.5,paste("pnorm(1)-pnorm(-1)"))
+arrows(x1=2,y1=0.3,x0=1,y0=dnorm(1),code = 1)
+text(1.7,0.32,pos=4,cex=1.5,paste("dnorm(1)"))
+points(1,dnorm(1))
+#points(1,0)
+arrows(x1=2,y1=0.1,x0=1,y0=0,code = 1)
+text(1,0.12,pos=4,cex=1.5,paste("qnorm(0.841)"))
+x<-rnorm(10)
+points(x=x,y=rep(0,10),pch=17)
+text(-3,0.05,pos=4,cex=1.5,paste("rnorm(10)"))
+arrows(x1=-2.5,y1=0.03,x0=min(x),y0=0,code = 1)
+```
 
 
 ### Normal distribution quiz
