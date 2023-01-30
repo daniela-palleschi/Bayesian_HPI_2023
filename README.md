@@ -1,7 +1,11 @@
 # Bayesian_HPI_2023
 My notes for the 2023 Intro Bayesian course given by Shravan Vasishth.
 
-video_notes.Rmd: my notes from the video lectures (source code)
-book_exercises.Rmd: my notes from the book exercises (source code)
-quiz_workbook.Rmd: my solutions to the quizzes (source code); *updated only after the relevant deadlines*
-github_steps.Rmd: very brief overview of how to integrate your own remote github repo with RStudio
+Rmd file overview
+
+- video_notes.Rmd: my notes from the video lectures (source code)
+- book_exercises.Rmd: my notes from the book exercises (source code)
+- quiz_workbook.Rmd: my solutions to the quizzes (source code); *updated only after the relevant deadlines*
+- github_steps.Rmd: very brief overview of how to integrate your own remote github repo with RStudio
+
+All other files (html, pdf) are compiled versions from the relevant Rmd file.
