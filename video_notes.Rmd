@@ -4,18 +4,20 @@ output:
   html_document:
     number_sections: yes
     toc: yes
-    toc_depth: 2
+    toc_depth: 4
     toc_float: yes
     df_print: paged
   pdf_document:
     number_sections: yes
     toc: yes
-    toc_depth: '2'
+    toc_depth: '3'
   html_notebook:
     number_sections: yes
     toc: yes
-    toc_depth: 2
+    toc_depth: 3
     toc_float: yes
+editor_options: 
+  chunk_output_type: console
 ---
 
 # Set options {-}
@@ -61,13 +63,24 @@ extract <- rstan::extract
 
 # Terms and abbreviations {-}
 
+- *RV*: random variable
+- *Bernoulli* distribution: univariate binomial
 - *PMF*: probability mass function (binomial)
 - *CMF*: cumulative mass function (binomial)
-- *PDF*: probability density function (continuous)
+
+- *standard normal distribution*: mean = 0, sd = 1
+- *f* = *PDF*: probability density function (continuous)
 - *CDF*: cumulative density function (continuous)
 - *k*: number of successes
 - *n*: number of trials
 - $\theta$: the probability of success
+- *AUC*: area under the curve
+
+- *univariate*: one variable
+- *bivariate*: 2 variables
+- *multivariate*: 2+ variables
+
+- *variance*: sd^2
 
 # Week 1
 
@@ -143,33 +156,6 @@ probs <- pbinom(0:10,size = 10, prob = .5)
 
 # compute the inverse CDF; qbinom takes as its input a probability of an outcome and outputs the inverse
 qbinom(probs, size = 10, prob=.5)
-```
-
-### Binomial distribution quiz
-
-Q1: Consider participating in a lottery ten times. Each time the probability of winning a prize is 0.10. What is the probability of winning exactly 5 times?
-
-```{r}
-# use dbinom to compute PDF
-round(
-  dbinom(5, # produce probs for 5 successes
-       size = 10, # out of 10 tries/trials
-       prob = .1 # with a prob of success on each trial = .1
-       ),
-3)
-```
-
-Q2: Consider lending 10 books from a library. The probability of getting a damaged book is 0.15. Compute the cumulative probability of having 2 or fewer damaged books rounded to three digits.
-
-```{r}
-# use pbinom to compute CDF
-round(
-  pbinom(2, # successes
-    size = 10, # out of 10
-    prob = .15 # with prob of .15
-    
-  ),
-3)
 ```
 
 ### My summary notes
@@ -265,12 +251,11 @@ dnorm(x = 2,
       sd = 1)
 ```
 
-```{r, echo = F, results = "asis", fig.height=4}
+```{r, echo = T, results = "asis", fig.height=4}
 curve(dnorm(x,0,1), xlim=c(-3,3), main="Normal(0,1)",
       ylab="density")
 from.z <- -1
 to.z <- 1
-
 S.x  <- c(from.z, seq(from.z, to.z, 0.01), to.z)
 S.y  <- c(0, dnorm(seq(from.z, to.z, 0.01)), 0)
 polygon(S.x,S.y, col=rgb(1, 0, 0,0.3))
@@ -288,20 +273,6 @@ arrows(x1=-2.5,y1=0.03,x0=min(x),y0=0,code = 1)
 ```
 
 
-### Normal distribution quiz
-
-Q1: Given a standard normal distribution, what is the probability of getting a value lower than -3?
-
-```{r}
-pnorm(-3)
-```
-
-Q2: Given a standard normal distribution, what is the probability of getting a value higher than -3?
-
-```{r}
-pnorm(-3, lower.tail=F)
-```
-
 ## Maximum Likelihood estimates
 
 ***Spoiler:*** it's pretty much the mean/mode/median of normally distributed data (where the three be the same); gives us the most likely value that the parameter $\theta$ has *given the data*
@@ -314,12 +285,10 @@ pnorm(-3, lower.tail=F)
 From my book notes from SMLP 2022:
 
 > In real exerimental situations we never know the true value of $\theta$ (probability of an outcome), but it can be derived from the data: *$\theta$ hat = k/n*, where *k* = number of observed successess, *n* = number of trials, and *$\theta$ hat* = observed proportion of successes. *$\theta$ hat* = ***maximum likelihood estimate*** of the true but unknown parameter *$\theta$*. Basically, the **mean** of the binomial distribution. The **variance** can also be estimated by computing *(n($\theta$))(1 - $\theta$)*. These estimates can be be used for statistical inference.
-
 From my class notes from SMLP 2022:
 
 > -   common misunderstanding of the **maximum likelihood estimate (MLE)**: it doens't represent the true value of $\theta$, because it's the MLE (best guess) for the *data you have*
 >    -   but the MLE will be closer to the true value of $\theta$ assample size increases
-
 - e.g., the PMF (binomial) contains three terms:
   - *k*: number of successes
   - *n*: total number of trials
@@ -330,5 +299,63 @@ From my class notes from SMLP 2022:
 
 - the MLE from a particular *sample* of data doesn't necessarily give us an accurate estimate of the true value of $\theta$ (because it's just a sample, of course)
   - larger sample sizes get MLEs that more accurately represent the true value of $\theta$ (again, duh because of the point made above regarding the expectation)
+
+## Bivariate and multivariate distributions (Discrete case)
+
+- *univariate* distributions: only one variab le
+- *bivariate* or *multivariable* distributions: multiple variables
+- *Bernoulli* distribution: univariate binomial data
+
+- ***joint probability mass function*** (PMF): the joint distribution of multivariate binomial data
+- joint probability density function would be for continuous data
+
+- each RV has its own PMF that can be computed separately
+
+- you can also compute the **conditional distribution**, i.e., the probability of x given y (x|y) or of y given x (x|y)
+  - the conditional probability of *x|y* is going to be the joint distribution of *x,y* divided by the marginal distribution of a particular value of y
   
-  ## Bivariate and multivariate distributions (Discrete case)
+
+
+## Bivariate and multivariate distributions (Continuous case)
+
+- only going to discuss bivariate distributions here cause they're easier to conceptualize
+
+- we'd take into account the mean and sd of each variable, as well as the correlation between the two
+
+- in a bivariate case, the diagonals (from top left downward) of the VarCorr matrix will contain the *variances* of either RV
+  - the off-diagonals (from bottom left upward) contain the *covariance* from the two RVs
+  
+- ***covariance*** = the correlation of the two RVs multiplied by each of their SDs: *Cov(X,Y)* = $\rho$XY$\sigma$X$\sigma$Y
+  
+- this allows us to describe how these 2 RVs are jointly distributed
+- in the joint PDF: AUC sums to 1 but will be a 3D cone, rather than a 2D curve as in the univariate case
+
+- we can also compute the marginal distributions, just as in the bivariate discrete case
+
+- simulating data:
+
+```{r}
+# generate simulated bivariate data
+
+## define a VarCorr matrix, where rho = .6, variance
+Sigma <- matrix(c(
+  5^2, 5 * 10 * .6, # variance = sd^2, covariance=sd*sd*rho  (.6)
+  .5 * 10 * .6, 10^2 # covariance=sd*sd*rho  (.6) * correlation (.6), variance = sd^2
+  ),
+  byrow = F, ncol = 2
+  )
+
+## generate data
+u <- MASS::mvrnorm(n = 100, mu = c(0,0), Sigma = Sigma)
+head(u, n=3)
+```
+
+```{r, fig.height=4}
+## plot data
+# plot(u)
+
+ggplot2::ggplot(u, aes(x = V1, y = V2)) +
+    labs(title = "rho = .6") + 
+    geom_point()
+```
+
