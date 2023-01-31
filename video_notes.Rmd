@@ -1,21 +1,21 @@
 ---
 title: "HPI Bayesian Course"
 output:
+  html_notebook:
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: '3'
   html_document:
     number_sections: yes
     toc: yes
     toc_depth: 4
     toc_float: yes
     df_print: paged
-  pdf_document:
-    number_sections: yes
-    toc: yes
-    toc_depth: '3'
-  html_notebook:
-    number_sections: yes
-    toc: yes
-    toc_depth: 3
-    toc_float: yes
 editor_options: 
   chunk_output_type: console
 ---
@@ -278,17 +278,18 @@ arrows(x1=-2.5,y1=0.03,x0=min(x),y0=0,code = 1)
 ***Spoiler:*** it's pretty much the mean/mode/median of normally distributed data (where the three be the same); gives us the most likely value that the parameter $\theta$ has *given the data*
 
 -  the 'expectation' (discrete case)
-  - if you were to do an experment with a larger and larger sample size, you'd get closer to the expected value (e.g., value of .5 successes in repeated coin tosses)
+  - if you were to do an experiment with a larger and larger sample size, you'd get closer to the expected value (e.g., value of .5 successes in repeated coin tosses)
   
   - we can estimate $\theta$ ($\theta$-hat), but we'll never know the true value of $\theta$
 
 From my book notes from SMLP 2022:
 
 > In real exerimental situations we never know the true value of $\theta$ (probability of an outcome), but it can be derived from the data: *$\theta$ hat = k/n*, where *k* = number of observed successess, *n* = number of trials, and *$\theta$ hat* = observed proportion of successes. *$\theta$ hat* = ***maximum likelihood estimate*** of the true but unknown parameter *$\theta$*. Basically, the **mean** of the binomial distribution. The **variance** can also be estimated by computing *(n($\theta$))(1 - $\theta$)*. These estimates can be be used for statistical inference.
+
 From my class notes from SMLP 2022:
 
-> -   common misunderstanding of the **maximum likelihood estimate (MLE)**: it doens't represent the true value of $\theta$, because it's the MLE (best guess) for the *data you have*
->    -   but the MLE will be closer to the true value of $\theta$ assample size increases
+> -   common misunderstanding of the **maximum likelihood estimate (MLE)**: it doesn't represent the true value of $\theta$, because it's the MLE (best guess) for the *data you have*
+>    -   but the MLE will be closer to the true value of $\theta$ as sample size increases
 - e.g., the PMF (binomial) contains three terms:
   - *k*: number of successes
   - *n*: total number of trials
@@ -346,7 +347,7 @@ Sigma <- matrix(c(
   )
 
 ## generate data
-u <- MASS::mvrnorm(n = 100, mu = c(0,0), Sigma = Sigma)
+u <- as.data.frame(MASS::mvrnorm(n = 100, mu = c(0,0), Sigma = Sigma))
 head(u, n=3)
 ```
 
