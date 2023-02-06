@@ -1,0 +1,586 @@
+---
+title: "HPI Bayesian Course"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+    df_print: paged
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: '3'
+  html_notebook:
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Set options {-}
+
+```{r setup, include=FALSE}
+# set global knit options
+knitr::opts_chunk$set(echo = T,
+                      eval = T,
+                      error = F,
+                      warning = F,
+                      message = F)
+
+# suppress scientific notation
+options(scipen=999)
+
+# list of required packages
+packages <- c( #"SIN", # this package was removed from the CRAN repository
+               "MASS", "dplyr", "tidyr", "purrr", "extraDistr", "ggplot2", "loo", "bridgesampling", "brms", "bayesplot", "tictoc", "hypr", "bcogsci", "papaja", "grid", "kableExtra", "gridExtra", "lme4", "cowplot", "pdftools", "cmdstanr", "rootSolve", "rstan"
+  )
+
+# NB: if you haven't already installed bcogsci through devtools, it won't be loaded
+
+## Now load, or install & load, all of the packages listed in 'packages'
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+
+# this is also required, taken from the textbook:
+## Save compiled models:
+rstan_options(auto_write = FALSE)
+## Parallelize the chains using all the cores:
+options(mc.cores = parallel::detectCores())
+# To solve some conflicts between packages
+select <- dplyr::select
+extract <- rstan::extract
+```
+
+# Terms and abbreviations {-}
+
+## Week 1 {-}
+
+- *RV*: random variable
+- *Bernoulli* distribution: univariate binomial
+- *PMF*: probability mass function (binomial)
+- *CMF*: cumulative mass function (binomial)
+
+- *standard normal distribution*: mean = 0, sd = 1
+- *f* = *PDF*: probability density function (continuous)
+- *CDF*: cumulative density function (continuous)
+- *k*: number of successes
+- *n*: number of trials
+- $\theta$: the probability of success
+- *AUC*: area under the curve
+
+- *univariate*: one variable
+- *bivariate*: 2 variables
+- *multivariate*: 2+ variables
+
+- *variance* = sd^2
+
+## Week 2 {-}
+
+- *P(A|B)*: probability of A given B
+- *P(A,B)*: probability of A and B
+- *f* = *PDF*: probability density function (continuous)
+  - so *f(\$theta$|y)*: PDF of theta given a certain value of y
+
+# Week 1: Introduction
+
+## Discrete random variables
+
+- random variables are functions that map one set to the set of real numbers
+  - associates to each outcome to a particular real number
+  
+There's a set of events that *can* happen, like tossing a coin. A random variable maps each of these possible events to a real number. In tossing a coin until you get a heads, a random variable would be the number of tosses until you get a 'success' (heads). In principle it could be an infinite set, bcause you could in theory toss the coin an infinite number of times without ever getting a heads (though this is extremely improbable).
+
+Alternatively, the random variable can be a finite set if we are interested in looking whether *one* toss results in a head or a tails.
+
+PMF: probability mass function, PDF: probability density function
+
+- PMF = for discrete distributions
+- PDF: for continuous
+- CDF: cumulative distribution function; gives a mapping from a particular numerical value to a probability; means the probability of getting that number or something less than it.
+
+Simulate tossing a coin 10 times with probability of heads = 0.5, with a Bernoulli random variable.
+
+```{r, eval = T, echo = T}
+# simulate tossing a coin 10 times
+extraDistr::rbern(n = 10, prob = .5)
+```
+
+What's the probablity of getting a tails or a heads? The d-family of functions:
+
+```{r}
+extraDistr::dbern(0,prob=.5)
+
+extraDistr::dbern(1,prob=.5)
+```
+
+Cumulative probability distribution function: the p-family of functions
+
+```{r}
+# probability distribution function
+
+## for whichever case we coded as 0
+extraDistr::pbern(0,.5)
+
+## for whichever case we coded as 1
+extraDistr::pbern(1,.5)
+```
+
+## Discrete random variables: the binomial
+
+When we toss a coin only once, this is a Bernoulli random variable. If we toss the coin more than once, this is a *binomial*. Both Bernoulli and Binomial have a PMF associated with them.
+
+```{r}
+# generate random binomial data
+rbinom(n = 10, size = 1, prob = .5)
+```
+
+```{r}
+# compute probabilites of a particular outcome
+probs <- round(dbinom(0:10, size = 10, prob = .5),3); probs
+x <- 0:10
+rbind(x,probs)
+```
+
+```{r}
+# compute cumulative probabilities of all possible outcomes
+pbinom(0:10, size=10, prob = .5)
+```
+
+Compute quantiles using the inverse of the CDF: what is the quantile q such that the probability of X is greater than x?
+
+```{r}
+# generate distribution (0:10 outcomes or less, for 10 repetitions, with probability .5)
+probs <- pbinom(0:10,size = 10, prob = .5)
+
+
+# compute the inverse CDF; qbinom takes as its input a probability of an outcome and outputs the inverse
+qbinom(probs, size = 10, prob=.5)
+```
+
+### My summary notes
+
+d-p-q-r family of functions
+
++-----------+-------------------------+--------------------------------------------------+
+| RV        | Function(arguments)     | Outcome                                          |
++===========+=========================+==================================================+
+| Bernoulli | `rbern(n,prob)`         | generate random data                             |
+|           +-------------------------+--------------------------------------------------+
+|           | `dbern(x,prob)`         | PMF: ***probability*** of outcome x              |
+|           +-------------------------+--------------------------------------------------+
+|           | `pbern(q,prob)`         | CMF: cumulative PMF of <=q                       |
++-----------+-------------------------+--------------------------------------------------+
+| Binomial  | `rbinom(n, size, prob)` | generate random data with n = of successes       |
+|           +-------------------------+--------------------------------------------------+
+|           | `dbinom(q,size,prob)`   | PMF: ***probability*** of outcome x              |
+|           +-------------------------+--------------------------------------------------+
+|           | `pbinom(q,size,prob)`   | CMF: cumulative PMF of <=q                       |
+|           +-------------------------+--------------------------------------------------+
+|           | `qbinom(p,prob,size)`   | inverse CMF: cumulative PMF of >=x               |
++-----------+-------------------------+--------------------------------------------------+
+| normal    | `rnorm(n,mean,sd)`      | generate random data                             |
+|           +-------------------------+--------------------------------------------------+
+|           | `dnorm(x,mean,sd)`      | PDF: ***density*** of outcome x                  |
+|           +-------------------------+--------------------------------------------------+
+|           | `pnorm(q,mean,sd)`      | CDF: cumulative PDF of <=q                       |
+|           +-------------------------+--------------------------------------------------+
+|           | `pnorm(q,mean,sd,`      | inverse CDF: cumulative PDF of >=q               |
+|           |       `lower.tail=F)`   |                                                  |
+|           +-------------------------+--------------------------------------------------+
+|           | `qnorm(p,prob,size)`    | Compute quantiles corresponding to probabilities |
++-----------+-------------------------+--------------------------------------------------+
+
+## Continuous random variables (PDFs)
+
+- in discrete RV cases, we compute the probability of a *particular* outcome
+- in continous RV cases, probability is defined by the ***area under the curve*** (AUC)
+- we use the cumulative distribution function associated with a normal distribution to compute this AUC; i.e., the probability of observing a value between x1 and x2
+
+## Continous RVs: the normal distribution
+
+- the standard normal distribution:
+  - Normal(mean = 0, sd = 1)
+  - Prob(-1 < X < 1) = 68%
+  - Prob(-1.96 < X < 1.96) = 95%
+  - Prob(-3 < X <3) = 99.7%
+
+- for any other normal distribution (with varying mean and sd):
+  - Prob(-1\*sd < X < 1\*sd ) = 68%
+  - Prob(-1.96\*sd  < X < 1.96\*sd ) = 95%
+  - Prob(-3\*sd  < X <3\*sd ) = 99.7%
+- the continuous vales on the x-axis (here, +/- 1,2,3) are the **quantiles**
+
+`rnorm(n,mean,sd)`: Generate random data using
+```{r}
+rnorm(n=5,
+      mean = 0,
+      sd = 1)
+```
+
+`pnorm(q,mean,sd)`: Compute probabilities using CDF
+```{r}
+pnorm(q = 2,
+      mean = 0,
+      sd = 1)
+```
+
+`pnorm(q,mean,sd,lower.tail=F)`: Compute inverse probabilities using CDF
+```{r}
+pnorm(q = 2,
+      lower.tail=F,
+      mean = 0,
+      sd = 1) # don't look the left (equal to or less than q), but the right (equal or greater than q)
+```
+
+`qnorm(p,mean,sd))`: Compute quantiles corresponding to probabilities using the inverse of the CDF
+
+```{r}
+qnorm(p = 0.9772499,
+      mean = 0,
+      sd = 1)
+```
+
+`dnorm(x,mean,sd)`: Compute the probability ***density*** for a quantile value
+
+  - not the probability of a particular outcome
+  - rather the **density** of that particular value, i.e., the y-axis value
+
+```{r}
+dnorm(x = 2,
+      mean = 0,
+      sd = 1)
+```
+
+```{r, echo = T, results = "asis", fig.height=4}
+curve(dnorm(x,0,1), xlim=c(-3,3), main="Normal(0,1)",
+      ylab="density")
+from.z <- -1
+to.z <- 1
+S.x  <- c(from.z, seq(from.z, to.z, 0.01), to.z)
+S.y  <- c(0, dnorm(seq(from.z, to.z, 0.01)), 0)
+polygon(S.x,S.y, col=rgb(1, 0, 0,0.3))
+text(-2,0.15,pos=4,cex=1.5,paste("pnorm(1)-pnorm(-1)"))
+arrows(x1=2,y1=0.3,x0=1,y0=dnorm(1),code = 1)
+text(1.7,0.32,pos=4,cex=1.5,paste("dnorm(1)"))
+points(1,dnorm(1))
+#points(1,0)
+arrows(x1=2,y1=0.1,x0=1,y0=0,code = 1)
+text(1,0.12,pos=4,cex=1.5,paste("qnorm(0.841)"))
+x<-rnorm(10)
+points(x=x,y=rep(0,10),pch=17)
+text(-3,0.05,pos=4,cex=1.5,paste("rnorm(10)"))
+arrows(x1=-2.5,y1=0.03,x0=min(x),y0=0,code = 1)
+```
+
+
+## Maximum Likelihood estimates
+
+***Spoiler:*** it's pretty much the mean/mode/median of normally distributed data (where the three would be the same value); gives us the most likely value that the parameter $\theta$ has *given the data*
+
+-  the 'expectation' (discrete case)
+  - if you were to do an experiment with a larger and larger sample size, you'd get closer to the expected value (e.g., value of .5 successes in repeated coin tosses)
+  - we can estimate $\theta$ ($\theta$-hat), but we'll never know the true value of $\theta$
+
+From my book notes from SMLP 2022:
+
+> In real exerimental situations we never know the true value of $\theta$ (probability of an outcome), but it can be derived from the data: *$\theta$ hat = k/n*, where *k* = number of observed successess, *n* = number of trials, and *$\theta$ hat* = observed proportion of successes. *$\theta$ hat* = ***maximum likelihood estimate*** of the true but unknown parameter *$\theta$*. Basically, the **mean** of the binomial distribution. The **variance** can also be estimated by computing *(n($\theta$))(1 - $\theta$)*. These estimates can be be used for statistical inference.
+
+From my class notes from SMLP 2022:
+
+> -   common misunderstanding of the **maximum likelihood estimate (MLE)**: it doesn't represent the true value of $\theta$, because it's the MLE (best guess) for the *data you have*
+>    -   but the MLE will be closer to the true value of $\theta$ as sample size increases
+- e.g., the PMF (binomial) contains three terms:
+    - *k*: number of successes
+    - *n*: total number of trials
+    - *$\theta$*: probability of success (can have values between 0 and 1)
+- the PMF is a function of these parameters, based on the data (given our data we know the values of *k* and *n* so they are fixed quantities and no longer random), so $\theta$ can be treated as a variable
+  
+- the **likelihood function** is the PMF (or PDF) as a function of the parameters, rather than a function of the data
+
+- the MLE from a particular *sample* of data doesn't necessarily give us an accurate estimate of the true value of $\theta$ (because it's just a sample, of course)
+  - larger sample sizes get MLEs that more accurately represent the true value of $\theta$ (again, duh because of the point made above regarding the expectation)
+
+## Bivariate and multivariate distributions (Discrete case)
+
+- *univariate* distributions: only one variab le
+- *bivariate* or *multivariable* distributions: multiple variables
+- *Bernoulli* distribution: univariate binomial data
+
+- ***joint probability mass function*** (PMF): the joint distribution of multivariate binomial data
+- joint probability density function would be for continuous data
+
+- each RV has its own PMF that can be computed separately
+
+- you can also compute the **conditional distribution**, i.e., the probability of x given y (x|y) or of y given x (x|y)
+  - the conditional probability of *x|y* is going to be the joint distribution of *x,y* divided by the marginal distribution of a particular value of y
+  
+
+
+## Bivariate and multivariate distributions (Continuous case)
+
+- only going to discuss bivariate distributions here cause they're easier to conceptualize
+
+- we'd take into account the mean and sd of each variable, as well as the correlation between the two
+
+- in a bivariate case, the diagonals (from top left downward) of the VarCorr matrix will contain the *variances* of either RV
+  - the off-diagonals (from bottom left upward) contain the *covariance* from the two RVs
+  
+- ***covariance*** = the correlation of the two RVs multiplied by each of their SDs: *Cov(X,Y)* = $\rho$XY$\sigma$X$\sigma$Y
+  
+- this allows us to describe how these 2 RVs are jointly distributed
+- in the joint PDF: AUC sums to 1 but will be a 3D cone, rather than a 2D curve as in the univariate case
+
+- we can also compute the marginal distributions, just as in the bivariate discrete case
+
+- simulating data:
+
+```{r}
+# generate simulated bivariate data
+
+## define a VarCorr matrix, where rho = .6, variance
+Sigma <- matrix(c(
+  5^2, 5 * 10 * .6, # variance = sd^2, covariance=sd*sd*rho  (.6)
+  .5 * 10 * .6, 10^2 # covariance=sd*sd*rho  (.6) * correlation (.6), variance = sd^2
+  ),
+  byrow = F, ncol = 2
+  )
+
+## generate data
+u <- as.data.frame(MASS::mvrnorm(n = 100, mu = c(0,0), Sigma = Sigma))
+head(u, n=3)
+```
+
+```{r, fig.height=4}
+## plot data
+# plot(u)
+
+ggplot2::ggplot(u, aes(x = V1, y = V2)) +
+    labs(title = "rho = .6") + 
+    geom_point()
+```
+
+# Week 2: Bayesian data analysis
+
+## Bayes' Rule
+
+- suppose you have 2 discrete events (A: the streets are wet, B: it is raining)
+  - the probability of A given B is the joint probability of A and B divided by the marginal probability of that particular value of B (where P(B) > 0)
+    - this conditional probability rules leads ot Bayes' rule
+    
+- *P(A|B) = P(A,B)/P(B) where P(B) > 0*
+- *P(A,B) = P(B,A)*
+- *P(B,A) = P(B|A)P(A) = P(A|B)P(B) = P(A,B)*
+
+- rearranging the terms, we get Bayes' rule:
+  - *P(B|A) = P(A|B)P(B) / P(A)*
+
+- but in real world we're usually working with multivariate (and continuous) data
+  - we can re-write Bayes' rule in terms of density function (curly *f*)
+  - *f()* refers to a PDF, not the probability of a single event
+  - \$theta$ is now a random variable: *f(\$theta$)
+  - *f(\$theta$|y)*: PDF of \$theta$ given our observed data (y) 
+  
+- an example with a discrete RV: if *n* = 10 trials and *k* = 7 successes, and if we suppose there are three possible values of \$theta$: .1,.5, and .9 and each has the probability of 1/3, the likelihood function would be:
+
+```{r}
+sum(dbinom(x = 7, # k successes
+           size=10, # n trials
+           prob=c(0.1,0.5,0.9) # theta values
+           )
+    )/3 # divided by 3 because each theta has p = 1/3
+```
+
+## Bayes' rule in action: Binomial-beta conjugate case
+
+```{r}
+# a discrete example
+dbinom(x = 46, # k successes
+       size = 100, # n trials
+       prob = .5 # theta
+       )
+```
+
+- the beta distribution is defined in terms of *a* and *b*
+  - B(a,b) refers to a particular beta distribution with some values a and b
+  - in R, a and b are written as `shape1` and `shape2`
+  
+```{r, eval = F}
+dbeta(x, # 
+      shape1, # parameter a
+      shape2 # parameter b
+)
+```
+
+- beta distribution's a and b can be interpreted as our beliefs about prior successes and failurs
+  - once we choose a and b, we can plot the beta PDF
+  
+```{r}
+# will spit out the *density* (y-axis value) at a certain point along the curve
+dbeta(x = .5,
+      shape1=1,
+      shape2=1
+      )
+
+dbeta(x = .5,
+      shape1=3,
+      shape2=3
+      )
+
+dbeta(x = .5,
+      shape1=6,
+      shape2=6
+      )
+```
+
+```{r betadensity}
+
+
+plot(function(x) 
+  dbeta(x,shape1=1,shape2=1), 0,1,
+      main = "Beta density",
+  ylab="density",xlab="theta",ylim=c(0,3))
+
+text(.5,1.1,"a=1,b=1")
+
+plot(function(x) 
+  dbeta(x,shape1=3,shape2=3),0,1,add=TRUE)
+text(.5,1.6,"a=3,b=3")
+
+
+plot(function(x) 
+  dbeta(x,shape1=6,shape2=6),0,1,add=TRUE)
+text(.5,2.6,"a=6,b=6")
+```
+
+- the higher the values of *a* and *b*, the tighter your priors
+  - compare the curves for when *a* and *b* were 1, 3, and 6 in \hyperref[betadensity]{ex. \ref{betadensity}}
+  - *a* = number of successes
+  - *b* = number of failures
+  - therefore, the prior mean will be 0.5 if a and b are equal
+
+- **uninformative prior**: a and b = 1 (flat line, all values are equally likely)
+
+- normalising the lieklihood allows us to visualize all three (prior, likelihood, posterior) in the same plot on the same scale
+
+```{r}
+## observed values
+x <- 46
+n <- 100
+
+## prior specification
+a <- 210
+b <- 21
+
+binom_lh <- function(theta) {
+  dbinom(x=x,
+         size=n,
+         prob=theta)
+}
+
+## normalising constant
+K <- 1/integrate(f = binom_lh, lower=0,upper=1)$value
+
+binom_scaled_lh <- function(theta)K*binom_lh(theta)
+```
+
+```{r}
+# Plot normalized prior, posterior, and observed data
+## Likelihood
+p_beta <- ggplot(data = tibble(theta = c(0, 1)), aes(theta)) +
+  stat_function(
+    fun = dbeta,
+    args = list(shape1 = a, 
+                shape2 = b),
+    aes(linetype = "Prior")
+  ) +
+  ylab("density") +
+  stat_function(
+    fun = dbeta,
+    args = list(shape1 = x + a, 
+                shape2 = n - x + b), 
+    aes(linetype = "Posterior")
+  ) +
+  stat_function(
+    fun = binom_scaled_lh,
+    aes(linetype = "Scaled likelihood")
+  ) +
+  theme_bw() +
+  theme(legend.title = element_blank())
+p_beta
+```
+
+- here we see that the posterior is a compromise between the prior and the likelihood
+- the more precise the prior is, the more the posterior will shift to the prior
+
+```{r}
+thetas<-seq(0,1,length=100)
+op<-par(mfrow=c(3,1))
+
+## prior
+plot(thetas,dbeta(thetas,shape1=a,shape2=b),type="l",
+     main="Prior",xlab="theta",ylab="density")
+
+## lik
+probs<-rep(NA,100) 
+
+for(i in 1:100){
+probs[i]<-dbinom(47,100,thetas[i])
+}
+
+plot(thetas,probs,main="Likelihood of x|theta_j",type="l",xlab="theta",ylab="density")
+
+## post
+x<-seq(0,1,length=100)
+
+a.star<- x + a
+b.star<- n - x + b
+
+plot(x,dbeta(x,shape1=a.star,shape2=b.star),type="l",
+     main="Posterior",xlab="theta",ylab="density")
+```
+
+## Bayes' rule in action: Poisson-Gamma conjugate case
+
+- imagine a dataset with the number of regressions as a DV (discrete continuous)
+- a and b are called `shape` and `scale`
+
+```{r}
+# simulate data
+round(rgamma(
+  n=10,
+  shape=3,
+  scale=1),
+  2)
+```
+
+```{r}
+# plot
+x<-seq(0,10,by=0.01)
+plot(x,dgamma(x,shape=3,scale=1),type="l",
+     ylab="density")
+```
+
+- to set our priors, we have to decide what the values of a and b will be
+- suppose we know the mean and variance from prior research is 3 and 1.5
+  - in a gamma PDF, the mean is a over b and teh variance is a over b-squared
+
+## Bayes' rule in action: Poisson-Gamma conjugate case cont'd
+
+- we assume a Poisson likelihood for the data (number of regressive eye movements)
+  - we know from expert knowledge that the mean rate of regressive eye movements is 3, with a variance of 1.5
+  - recall that we know in a gamma distribution that the mean is a/b and the variance is a/(b^2). We can now solve for a and b
+    - a/b = 3, a/(b^2) = 1.5
+    - a/(b^2) = (a/b)/b = 3/b = 1.5, and so 3/1.5 = b
+
+
+## The posterior mean

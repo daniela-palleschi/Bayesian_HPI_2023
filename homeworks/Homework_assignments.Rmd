@@ -1,0 +1,138 @@
+---
+title: "Graded homeworks"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+    df_print: paged
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: '3'
+  html_notebook:
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Set options {-}
+
+```{r setup, include=FALSE}
+# set global knit options
+knitr::opts_chunk$set(echo = T,
+                      eval = T,
+                      error = F,
+                      warning = F,
+                      message = F)
+
+# suppress scientific notation
+options(scipen=999)
+
+# list of required packages
+packages <- c( #"SIN", # this package was removed from the CRAN repository
+               "MASS", "dplyr", "tidyr", "purrr", "extraDistr", "ggplot2", "loo", "bridgesampling", "brms", "bayesplot", "tictoc", "hypr", "bcogsci", "papaja", "grid", "kableExtra", "gridExtra", "lme4", "cowplot", "pdftools", "cmdstanr", "rootSolve", "rstan"
+  )
+
+# NB: if you haven't already installed bcogsci through devtools, it won't be loaded
+## Now load or install & load all
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+
+# this is also required, taken from the textbook
+
+## Save compiled models:
+rstan_options(auto_write = FALSE)
+## Parallelize the chains using all the cores:
+options(mc.cores = parallel::detectCores())
+# To solve some conflicts between packages
+select <- dplyr::select
+extract <- rstan::extract
+```
+
+# Week 1
+
+#### Question 1 (4.0 Pts)  {-}
+What are the constraints on probability? Choose the correct answers:
+
+```{r, eval = F}
+If two events A and B are mutually exclusive, the events are called disjoint events. The probability of two disjoint events A or B happening is: p(A or B) = p(A) + p(B).
+
+## A ***or*** B! but we want to know 
+```
+
+
+- The probability that several mutually exclusive events occur is the sum of the probabilities of each of these events.
+- Several events can have the same probability. ***YES***
+- The probabilities of all possible events in the entire sample space sum up to 1. ***YES***
+- An event can have more than one probability.
+- The probability of an event must lie between 0 and 1, including 0 and 1. ***YES***
+- Several events in one sample space can have a probability of 1.
+- The probability of an event A given another event B is always equal to the probability of the event A occurring.
+- All events in the sample space are equally likely.
+
+#### Question 2  {-}
+In a random variable X that has as a PDF the standard normal distribution, what is the probability of observing the value x=1?
+
+```{r}
+# no code needed, this is a trick! with a continuous RV the chances of observing an exact value is always 0!
+```
+
+#### Question 3 (2.0 Pts)  {-}  {-}
+Consider a discrete bivariate distribution. Is it generally true that P(X=a | Y=b) = P(Y=b | X=a)
+
+#### Question 4 (1.0 Pts)  {-}
+In a standard normal distribution with mean 0 and standard deviation 1, the probability of obtaining a value greater than 2 is:
+
+```{r}
+pnorm(2,
+      lower.tail=F)
+pnorm(-2)
+# the same as obtaining a value less than -2
+```
+
+#### Question 5 (1.0 Pts)  {-}
+Given a standard normal distribution, what is the probability of getting a value higher than 2.5?
+
+```{r}
+round(
+  pnorm(q=2.5,
+        lower.tail=F),
+  3)
+```
+
+#### Question 6 (1.0 Pts)  {-}
+Consider participating in a lottery ten times and winning 5 times. What is the maximum likelihood estimate of the probability of winning?
+
+```{r}
+# MLE = theta-hat = k/n = 
+  5/10
+```
+
+
+#### Question 7 (1.0 Pts)  {-}
+Is it true that the maximum likelihood estimate (MLE) from a particular sample of data always gives us an accurate estimate of the parameter of interest?
+
+#### Question 8 (2.0 Pts)  {-}
+Consider participating in a lottery 100 times and winning 50 times. The number of wins out of 100 attempts is the random variable of interest. Estimate the variance of this random variable.
+
+```{r}
+100 * .5 * (1-.5)
+```
+
+#### Question 9 (2.0 Pts)  {-}
+Consider two independent random variables: 
+X ~ N(mu_x, sigma_x) and Y ~ N(mu_y, sigma_y).
+
+How is the bivariate distribution of X and Y specified?
