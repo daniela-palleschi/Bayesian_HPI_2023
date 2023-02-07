@@ -13,6 +13,9 @@ editor_options:
   chunk_output_type: console
 bibliography: references.json
 biblio-style: apalike
+header-includes:
+ \usepackage{hyperref}
+ \usepackage{apacite}
 ---
 
 These notes are based on @nicenboim_introduction_nodate, both from a PDF version supplied by the authors and the html version available [here](https://vasishth.github.io/bayescogsci/book/) (accessed in early 2023). Much of the notes are taken verbatim from the book, as are code snippets.
@@ -21,7 +24,7 @@ These notes are based on @nicenboim_introduction_nodate, both from a PDF version
 :::
 
 
-```{r, eval = T, echo = F}
+```{r, eval = T, echo = F, message = F}
 # Create references.json file based on the citations in this script
 rbbt::bbt_update_bib("book_notes.qmd")
 ```
@@ -544,7 +547,7 @@ round(
   3) # rounded to 3 decimal points
 ```
 
-- compare the AUC for the two beta distributions in
+- compare the AUC for the two beta distributions in Figure \ref{fig-beta2}
 
 ```{r}
 #| label: fig-beta2
@@ -574,10 +577,219 @@ p(\theta) = \frac{1}{B(4,4)} \theta^{3} (1-\theta)^{3}
 
 ## Using Baye's rule to computer the posterior *p(*$\theta$*|n,k)*
 
+- recall the equation from earlier:
+
+\begin{equation}
+\hbox{Posterior} = \frac{\hbox{Likelihood} \cdot \hbox{Prior}}{\hbox{Marginal Likelihood}}
+\end{equation}
+
+- now that we've got the likelihood and the prior, we can use Bayes' rule to calculate *p(*$\theta$|*n,k)*, as follows:
+
+\begin{equation}
+p(\theta|n=100,k=80) = \frac{\left[\binom{100}{80} \theta^{80} \cdot (1-\theta)^{20}\right]  \times \left[\frac{1}{B(4,4)} \times \theta^{3} (1-\theta)^{3}\right]}{p(k=80)}
+\tag{2.6}
+\end{equation}
+
+- constant values are those that do not depend on the unknown parameter of interest, $\theta$; so *p(k = 80)* will be a constant once we know the number of successes
+  - once *k* is known, we already have several constant values
+
+\begin{equation}
+p(\theta|n=100,k=80) =   \left[ \frac{\binom{100}{80}}{B(4,4)\times p(k=80)} \right]   [\theta^{80} (1-\theta)^{20} \times  \theta^{3} (1-\theta)^{3}]
+\tag{2.7}
+\end{equation}
+
+- we can gather all the constants (in the square brackets below):
+
+\begin{equation}
+p(\theta|n=100,k=80) =   \left[ \frac{\binom{100}{80}}{B(4,4)\times p(k=80)} \right]   [\theta^{80} (1-\theta)^{20} \times  \theta^{3} (1-\theta)^{3}]
+\tag{2.7}
+\end{equation}
+
+- and ignore the constants for now, which will later on make the AUC sum up to 1; so now we say the posterior is proportional to the right-hand side of the equation:
+
+\begin{equation}
+p(\theta|n=100,k=80) \propto   [\theta^{80} (1-\theta)^{20} \times \theta^{3} (1-\theta)^{3} ]
+\tag{2.8}
+\end{equation}
+
+- in other words:
+
+\begin{equation}
+\hbox{Posterior} \propto \hbox{Likelihood} \times \hbox{Prior}
+\end{equation}
+
+- now we just have to add up the exponents
+
+\begin{equation}
+p(\theta|n=100,k=80) \propto   [\theta^{80+3} (1-\theta)^{20+3}] = \theta^{83} (1-\theta)^{23}
+\tag{2.9}
+\end{equation}
+
+- recall that the beta distribution involves $\theta$ exponentiated to the power of *a*-1 and *b*-1 (see equation 2.4)
+  - therefore, the expression in 2.9 above corresponds to a beta distribution with parameters *a* = 84 and *b* = 24 (because 83 and 23 +1 is 84 and 24)
+  - all we need now is our  normalising constant to make the AUC sum to one; let's check this:
+  
+```{r}
+PostFun <- function(theta) {
+  theta^83 * (1 - theta)^23
+}
+(AUC <- integrate(PostFun, lower = 0, upper = 1)$value)
+```
+
+- this doesn't add up to 1, it's not a probability distribution
+- but we can use it to figure out what our normalising constant is; what is the constant *k* such that the AUC sums to 1:
+
+\begin{equation}
+k \int_{0}^{1} \theta^{83} (1-\theta)^{23} = 1
+\end{equation}
+
+- we know what \int_{0}^{1} \theta^{83} (1-\theta)^{23} is, because we just computed it above (and called it AUC), so:
+
+\begin{equation}
+k  = \frac{1}{\int_{0}^{1} \theta^{83} (1-\theta)^{23}} = \frac{1}{AUC}
+\end{equation}
+
+- we now have the distribution or $\theta$ given the data, expressed as a PDF:
+
+\begin{equation}
+p(\theta|n=100,k=80) = \frac{1}{B(83,23)} \theta^{84-1} (1-\theta)^{24-1} 
+\end{equation}
+
+- and our function will now sum to one if we divide it all by AUC
+
+```{r}
+PostFun <- function(theta) {
+  theta^83 * (1 - theta)^23 / AUC
+}
+integrate(PostFun, lower = 0, upper = 1)$value
+```
+
 ## Summary of the procedure
+
+- we started with a binomial likelihood
+  - multiplied it with the prior $\theta \sim \mathit{Beta}(4,4)$
+  - obtained the posterior *p(*$\theta$|*n,k)* $\sim \mathit{Beta}(4,4)$
+  - we ignored the constants when carrying out the multiplication (i.e., computer the posterior *up to proportionality*)
+  - then we rescaled the posterior to become a probability distribution by including a proportionality constant (AUC)
+  
+- this was an example of a **conjugate** analysis: the posterior on the parameter has thes ame form (belongs to the same family of probability distributions) as the prior
+- this combo of likelihood and prior is called the ***beta-binomial conjugate case***
+  - conjugacy is defined as: Given the likelihood *p(y*|$\theta$*)*, if the prior *p(*$\theta$*)( results in a posterior $p(\theta|y)$ that has some form as $p(\theta)$, then we call $p(\theta)$ a conjugate prior
+  
+  - given a $Binomial(n,k|\theta)$ likelihood, and a $Beta(a,b)$ prior on $\theta$, the posterior will be $Beta(a + k, b + n - k)$
 
 ## Visualising the prior, likelihood, and the posterior
 
+```{r}
+k <- 80
+n <- 100
+## Prior
+a <- 4
+b <- 4
+binom_lh <- function(theta) {
+dbinom(x=k, size =n, prob = theta)
+}
+K <- integrate(f = binom_lh, lower = 0, upper = 1)$value
+binom_scaled_lh <- function(theta) 1/K * binom_lh(theta)
+  
+p_beta <- ggplot(data = tibble(theta = c(0, 1)), aes(theta)) +
+  stat_function(
+    fun = dbeta,
+    args = list(shape1 = a, shape2 = b),
+    aes(linetype = "Prior")
+  ) +
+  ylab("density") +
+  stat_function(
+    fun = dbeta,
+    args = list(shape1 = k + a, shape2 = n - k + b), aes(linetype = "Posterior")
+  ) +
+  stat_function(
+    fun = binom_scaled_lh,
+    aes(linetype = "Scaled likelihood")
+  ) +
+  theme_bw() +
+  theme(legend.title = element_blank())
+p_beta
+```
+
+- if we wanted to produce the 95\% credible interval, i.e., the range over which we are 95\% certain the true value of $\theta$ lies, give *a* = 84 and *b* = 24:
+
+```{r}
+round(
+  qbeta(c(0.025, 0.975), shape1 = 84, shape2 = 24)
+  ,3)
+```
+
 ## The posterior distribution is ac ompromise between the prior and the likelihood
 
+- let's take four different beta priors with increasing certainty:
+  - $Beta(a = 2, b = 2)$
+  - $Beta(a = 3, b = 3)$
+  - $Beta(a = 6, b = 6)$
+  - $Beta(a = 21, b = 21)$
+
+- each reflects a believe that $\theta$ = 0.5 but with a varying degree of certainty
+  - we can now "just" plug in the likelihood and the prior to the beta-binomial case to get the posterior:
+  
+\begin{equation}
+p(\theta | n,k) \propto p(k |n,\theta) p(\theta)
+\end{equation}
+
+- if we plot the tightest case ($a = 21, b = 21$), we see how the posterior is affected
+
+```{r}
+k <- 80
+n <- 100
+## Prior
+a <- 21
+b <- 21
+binom_lh <- function(theta) {
+dbinom(x=k, size =n, prob = theta)
+}
+K <- integrate(f = binom_lh, lower = 0, upper = 1)$value
+binom_scaled_lh <- function(theta) 1/K * binom_lh(theta)
+  
+p_beta <- ggplot(data = tibble(theta = c(0, 1)), aes(theta)) +
+  stat_function(
+    fun = dbeta,
+    args = list(shape1 = a, shape2 = b),
+    aes(linetype = "Prior")
+  ) +
+  ylab("density") +
+  stat_function(
+    fun = dbeta,
+    args = list(shape1 = k + a, shape2 = n - k + b), aes(linetype = "Posterior")
+  ) +
+  stat_function(
+    fun = binom_scaled_lh,
+    aes(linetype = "Scaled likelihood")
+  ) +
+  theme_bw() +
+  theme(legend.title = element_blank())
+p_beta
+```
+
+- we can say the following about the likelihood-prior-posterior relationship:
+  - the posterior distribution is ac ompromise between the prior and the likelihood
+  - for a given set of data, the great the certainty in the prior, the more heavily the posterior will be influenced by the prior mean
+  - conversely, for a given set of data, the greater the **un**certainty in the prior, the more heavily the posterior will be influenced by the likelihood
+  - but because *n* and *k* are included in the posterior Beta distribution ($Beta(a + k, b + n - k)$), the posterior mean will be influenced more heavily by larger sample sizes
+    - sensitivity analyses can help check whether your parameter of interest is sensitive to the prior specification
+
 ## Incremental knowledge gain using prior knowledge
+
+- we can incrementally gain information about a research question by using information from previous studies and deriving a position, and then using that posterior as a prior for the next experiment
+
+- e.g., in the example above, we currently had a prior $Beta(4,4)$ and observed $k = 80$ successes of $n = 100$ observations, deriving a posterior $Beta(84,24)$
+  - if we were to run this experiment again and had $k = 60, n = 100$, we cwould have a posterior as follows $\mathit{Beta}(a+k,b+n-k) = \mathit{Beta}(84+60,24+100-60)=\mathit{Beta}(144,64)$
+  - alternatively, if we collected all this data in the first place and had a prior $Beta(4,4)$ and for data $k = 140, n = 200$, we'd have the same posterior: $\mathit{Beta}(4+140,4+200-140)=\mathit{Beta}(144,64)$
+
+- so, we can keep building on our previous findings to inform future priors
+
+## Summary
+
+- we'll continue down the same path we followed in this chapter moving forward:
+  1. decide on an appropriate likelihood function
+  2. decide on prior for all the parameters involved in the likelihood function
+  3. using this model (the likelihood and the priors) derive the posterior distribution of each parameter
+  4. draw inferences about our research question basedon the posterior distribution of the parameter

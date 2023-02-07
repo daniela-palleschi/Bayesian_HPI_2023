@@ -1,7 +1,7 @@
 # Bayesian_HPI_2023
 My notes for the 2023 Intro Bayesian course given by Shravan Vasishth.
 
-Rmd folder overview
+Folder overview
 
 - video notes/: my notes from the video lectures
 - book notes/: my notes from the book
@@ -10,6 +10,7 @@ Rmd folder overview
 - github_steps/: very brief overview of how to integrate your own remote github repo with RStudio
 
 Each folder contains:
+
 - .Rmd or .qmd: source code file
 - .html: html output
 - .pdf: PDF output

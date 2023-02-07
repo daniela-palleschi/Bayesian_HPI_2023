@@ -572,7 +572,12 @@ plot(x,dgamma(x,shape=3,scale=1),type="l",
 
 - to set our priors, we have to decide what the values of a and b will be
 - suppose we know the mean and variance from prior research is 3 and 1.5
-  - in a gamma PDF, the mean is a over b and teh variance is a over b-squared
+  - in a gamma PDF, the mean is a over b and the variance is a over b-squared
+
+$\frac{a}{b}$ = 3
+$\frac{a}{b^{2}}$ = 1.5 = $\frac{\frac{a}{b}}{b}$ = $\frac{3}{b}$ = 1.5
+then $\frac{3}{1.5}$ = $b$ = 2
+
 
 ## Bayes' rule in action: Poisson-Gamma conjugate case cont'd
 
@@ -584,3 +589,14 @@ plot(x,dgamma(x,shape=3,scale=1),type="l",
 
 
 ## The posterior mean
+
+- we're now going to look at the Poisson-gamma case
+- if we have a Gamma prior with a Poisson likelihood
+
+- recall: the Poisson distribution is for discrete cases and has one parameter: the rate (e.g., number of regressions)
+  - we first need to define a PDF for $\lambda$, which is the unknown rate; the $gamma(a,b)$ distribution (for continuous data) is a good choice
+  
+Take aways
+- when data are sparse, the prior will dominate in determining the posterior mean
+- when a lot of data are available, the MLE will dominate in determining the posterior mean
+- give sparse data, informative priors based on expert knowledge, existing data, or meta-analysis will play an important role
