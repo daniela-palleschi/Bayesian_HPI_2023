@@ -278,7 +278,7 @@ where the data points $x$ can have values 0,1,2,. Let the prior on $\theta$ be $
 My work:
 
 - prior is $Beta(a,b)$
-- likelihood is $\theta(1-0)\sum_{i=1}^n x_i$
-- posterior up to proportionality is$[\theta^{a-1}(1-0)^{b-1}][\theta(1-0)\sum_{i=1}^n x_i$
+- likelihood is $\theta(1-\theta)\sum_{i=1}^n x_i$
+- posterior up to proportionality is$[\theta^{a-1}(1-\theta)^{b-1}][\theta(1-\theta)\sum_{i=1}^n x_i$
 - sum up the exponentials on either side (and if there's no exponential then add a +1 cause every number is to the power of 1): $\theta^{a + 1 - 1}(1-\theta)^{b + \sum_{i=1}^n x_i - 1}$
 - and cancel out the $^{-1}$: $\theta^{a + 1}(1-\theta)^{b + \sum_{i=1}^n x_i}$
