@@ -3,11 +3,12 @@ My notes for the 2023 Intro Bayesian course given by Shravan Vasishth.
 
 Folder overview
 
-- video notes/: my notes from the video lectures
-- book notes/: my notes from the book
-- book exercises/: my notes from the book exercises
-- quiz_workbook/: my solutions to the quizzes; *updated only after the relevant deadlines*
-- github_steps/: very brief overview of how to integrate your own remote github repo with RStudio
+- /setup: setup steps/script from the textbook
+- /video notes: my notes from the video lectures
+- /book notes: my notes from the book
+- /book exercises: my notes from the book exercises
+- /quiz_workbook: my solutions to the quizzes; *updated only after the relevant deadlines*
+- /github_steps: very brief overview of how to integrate your own remote github repo with RStudio
 
 Each folder contains:
 
