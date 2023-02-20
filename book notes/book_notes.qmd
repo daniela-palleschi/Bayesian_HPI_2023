@@ -13,9 +13,6 @@ editor_options:
   chunk_output_type: console
 bibliography: references.json
 biblio-style: apalike
-header-includes:
- \usepackage{hyperref}
- \usepackage{apacite}
 ---
 
 These notes are based on @nicenboim_introduction_nodate, both from a PDF version supplied by the authors and the html version available [here](https://vasishth.github.io/bayescogsci/book/) (accessed in early 2023). Much of the notes are taken verbatim from the book, as are code snippets.
@@ -32,6 +29,15 @@ rbbt::bbt_update_bib("book_notes.qmd")
 # Set up{-}
 
 ```{r, results = "hide", warning=F,message=F,error=F}
+# set global knit options
+knitr::opts_chunk$set(echo = T,
+                      eval = T,
+                      error = F,
+                      warning = F,
+                      message = F,
+                      cache = T
+                      )
+
 # suppress scientific notation
 options(scipen=999)
 
@@ -365,25 +371,25 @@ Exercise 1.8 Practice with a variance-covariance matrix for a bivariate distribu
 
 - Bayes' rule: when *A* and *B* are observable discrete events (like "it has been raining" or "the streets are wet"), we can state the rule as follows:
 
-\begin{equation}
+$$
 P(A\mid B) = \frac{P(B\mid A) P(A)}{P(B)}
 \tag{2.1}
-\end{equation}
+$$
 
 - given a vector of data *y*, we can work out the posterior distributions of parameters of interest which we represent as the vector of parameters $\theta$
 - to do this, we can re-write equation 2.1 as 2.2:
 
-\begin{equation}
+$$
 p(\boldsymbol{\Theta}|\boldsymbol{y}) = \cfrac{ p(\boldsymbol{y}|\boldsymbol{\Theta}) \cdot p(\boldsymbol{\Theta}) }{p(\boldsymbol{y})}
 \tag{2.2}
-\end{equation}
+$$
 
 - now, Bayes' rule is writen in terms of probability distributions, where p() is the probability density function (continuous) or probability mass function (discrete)
 - in words, this simply means:
 
-\begin{equation}
+$$
 \hbox{Posterior} = \frac{\hbox{Likelihood} \cdot \hbox{Prior}}{\hbox{Marginal Likelihood}}
-\end{equation}
+$$
 
 ## Deriving the posterior using Bayes' Rule: an analystical example
 
@@ -451,19 +457,19 @@ round(sd(estimated_means),3)
 
 - with a binomial distribution like the cloze probability (chose 'bus' or not), the PMF can be written as:
 
-\begin{equation}
+$$
 p(k|n,\theta) = \binom{n}
 {k} \theta^k (1-\theta)^{n-k}
 \tag{2.3}
-\end{equation}
+$$
 
 - *k* = the number of times "bus" was given as an answer
 - *n* = the total number of answers given
 - if we collect 100 data points (*n* = 100), and find *k* = 80, we now have 2 fixed data points, *n* and *k*. The only variable is now $\theta$
 
-\begin{equation}
+$$
 p(k=80 | n= 100,  \theta) = \binom{n}{k} \theta^{80} (1-\theta)^{20}
-\end{equation}
+$$
 
 - this is now a continuous function of the value of $\theta$, which can have a possible value between 0 and 1
 - by contrast, the PMF of the binomial treats $\theta$ as a **fixed** value and defines a discrete distribution over the n+1 possible discrete values *k* that we can observe
@@ -480,10 +486,10 @@ Now we go back to our main foal: using Bayes' rule to find out the posterior dis
 
 - the ***beta distribution***, which is a PDF for a continuous random variable, is commonly used as a prior for parameters representing probabilities, and has the following PDF:
 
-\begin{equation}
+$$
 p(\theta|a,b)=  \frac{1}{B(a,b)} \theta^{a - 1} (1-\theta)^{b-1}   
 \tag{2.4}
-\end{equation}
+$$
 
 - *B(a,b)* is a normalising constant that ensures that the area under the curve sums to 1, so that *p(*$\theta$|*a,b)* is a probability
 - the beta distribution's paramters *a* and *b* express our prior beliefs about the probability of a success:
@@ -570,60 +576,60 @@ text(.5,3.7,"a=10,b=10")
   - if we have a lot of prior knowledge or a strong belief regarding the range of plausible values for $\theta$, we can use a different set of *a* and *b* values
   - if we were to use *a* = 4 and *b* = 4, then our prior for $\theta$ would be:
 
-\begin{equation}
+$$
 p(\theta) = \frac{1}{B(4,4)} \theta^{3} (1-\theta)^{3}
-\end{equation}
+$$
 
 
 ## Using Baye's rule to computer the posterior *p(*$\theta$*|n,k)*
 
 - recall the equation from earlier:
 
-\begin{equation}
+$$
 \hbox{Posterior} = \frac{\hbox{Likelihood} \cdot \hbox{Prior}}{\hbox{Marginal Likelihood}}
-\end{equation}
+$$
 
 - now that we've got the likelihood and the prior, we can use Bayes' rule to calculate *p(*$\theta$|*n,k)*, as follows:
 
-\begin{equation}
+$$
 p(\theta|n=100,k=80) = \frac{\left[\binom{100}{80} \theta^{80} \cdot (1-\theta)^{20}\right]  \times \left[\frac{1}{B(4,4)} \times \theta^{3} (1-\theta)^{3}\right]}{p(k=80)}
 \tag{2.6}
-\end{equation}
+$$
 
 - constant values are those that do not depend on the unknown parameter of interest, $\theta$; so *p(k = 80)* will be a constant once we know the number of successes
   - once *k* is known, we already have several constant values
 
-\begin{equation}
+$$
 p(\theta|n=100,k=80) =   \left[ \frac{\binom{100}{80}}{B(4,4)\times p(k=80)} \right]   [\theta^{80} (1-\theta)^{20} \times  \theta^{3} (1-\theta)^{3}]
 \tag{2.7}
-\end{equation}
+$$
 
 - we can gather all the constants (in the square brackets below):
 
-\begin{equation}
+$$
 p(\theta|n=100,k=80) =   \left[ \frac{\binom{100}{80}}{B(4,4)\times p(k=80)} \right]   [\theta^{80} (1-\theta)^{20} \times  \theta^{3} (1-\theta)^{3}]
 \tag{2.7}
-\end{equation}
+$$
 
 - and ignore the constants for now, which will later on make the AUC sum up to 1; so now we say the posterior is proportional to the right-hand side of the equation:
 
-\begin{equation}
+$$
 p(\theta|n=100,k=80) \propto   [\theta^{80} (1-\theta)^{20} \times \theta^{3} (1-\theta)^{3} ]
 \tag{2.8}
-\end{equation}
+$$
 
 - in other words:
 
-\begin{equation}
+$$
 \hbox{Posterior} \propto \hbox{Likelihood} \times \hbox{Prior}
-\end{equation}
+$$
 
 - now we just have to add up the exponents
 
-\begin{equation}
+$$
 p(\theta|n=100,k=80) \propto   [\theta^{80+3} (1-\theta)^{20+3}] = \theta^{83} (1-\theta)^{23}
 \tag{2.9}
-\end{equation}
+$$
 
 - recall that the beta distribution involves $\theta$ exponentiated to the power of *a*-1 and *b*-1 (see equation 2.4)
   - therefore, the expression in 2.9 above corresponds to a beta distribution with parameters *a* = 84 and *b* = 24 (because 83 and 23 +1 is 84 and 24)
@@ -639,21 +645,21 @@ PostFun <- function(theta) {
 - this doesn't add up to 1, it's not a probability distribution
 - but we can use it to figure out what our normalising constant is; what is the constant *k* such that the AUC sums to 1:
 
-\begin{equation}
+$$
 k \int_{0}^{1} \theta^{83} (1-\theta)^{23} = 1
-\end{equation}
+$$
 
 - we know what \int_{0}^{1} \theta^{83} (1-\theta)^{23} is, because we just computed it above (and called it AUC), so:
 
-\begin{equation}
+$$
 k  = \frac{1}{\int_{0}^{1} \theta^{83} (1-\theta)^{23}} = \frac{1}{AUC}
-\end{equation}
+$$
 
 - we now have the distribution or $\theta$ given the data, expressed as a PDF:
 
-\begin{equation}
+$$
 p(\theta|n=100,k=80) = \frac{1}{B(83,23)} \theta^{84-1} (1-\theta)^{24-1} 
-\end{equation}
+$$
 
 - and our function will now sum to one if we divide it all by AUC
 
@@ -731,9 +737,9 @@ round(
 - each reflects a believe that $\theta$ = 0.5 but with a varying degree of certainty
   - we can now "just" plug in the likelihood and the prior to the beta-binomial case to get the posterior:
   
-\begin{equation}
+$$
 p(\theta | n,k) \propto p(k |n,\theta) p(\theta)
-\end{equation}
+$$
 
 - if we plot the tightest case ($a = 21, b = 21$), we see how the posterior is affected
 
@@ -810,4 +816,140 @@ p_beta
 
 ## Bayesian regression models using Stan: brms
 
-### A simple linear model: using 
+- because of increased computing power and probabilistic programming languages (e.g., WinBUGS, JAGS, R-INLA, pymc3, Turing, Stan), Bayesian statistics is now more popular
+  + these languages allow th euser to define models without the complexities of the sampling process
+  + however, they require learning a new language as te statistical model must be specified using a specific syntax
+  + additionally, some knowledge of the *sampling process* is needed to correctly parametrize the models and avoid convergence issues
+
+- Bayesian inference in `R` is possible without having the fully specify the model thanks to `stanarm` and `brms` packages
+  + both packages provide Bayesian equivalents of R model-fitting functions like `(g)lmer`
+  + both use Stan as the back-end for estimation and sampling
+
+- for this part of the book we will focus on `brms`
+  + it can be useful for a smooth transition from frequentist models to their Bayesian equivalents
+  + it has the added benefit that the Stan code can be inspected via `brms::make_stancode()` and `brms::make_standata()`
+  + users can then customatize their models or learn from the code produced internally by `brms`
+  
+### A simple linear model: A single subject pressing a button repeatedly
+
+- imagine having data from a single participant repeatedly pressing the spacebar as fast as possible
+  + the data are response times in imilliseconds in each trial; we want to know how long it takes to press a key for this subject
+  
+- let's model the data with thef ollowing assumptions:
+  1. Tehre is a true (unknown) underlying time, $\mu$ ms, that the subject needs to press the psace bar
+  2. There is some noise in this process
+  3. The noise is normally distributed (this assumption is questionable given that response times are generally skewed, we will fix this assumption later)
+
+This means that the likelihood for each observation $n$ will be:
+
+$$
+rt_{n} \sim Normal(\mu, \sigma)
+\tag{3.2}
+$$
+- where $n$ = 1, ..., $N$, and $rt$ is the dependent variable (RTs in ms)
+  + the variable $N$ indexes the total number of data points
+  + $\mu$ indicates the *location* of the normal distirbution function; the lcoation parameter shifts the distribution left or right on the horizontal axis
+  + in the *normal distribution*, the location is also the mean of the distribution
+  + $\sigma$ indicates the *scale* of the distribution; as the scale decreases, the distribution gets narrower
+  + for the normal distribution, the scale is also the standard deviation
+  
+- this same equation can be expressed as:
+
+$$
+rt_n = \mu + \varepsilon \hbox{, where } \varepsilon_n \stackrel{iid}{\sim} \mathit{Normal}(0,\sigma) \tag{3.3} 
+$$
+- this version of the model should be understood to mean that each data point $rt_n$ has some variability around a mean value $\mu$, and that variability has standard deviation $\sigma$
+  + the term $iid$ ('independent and identically distributed') implies that each data point $rt_n$ is independently generated (i.e., not correlated with any of the other data points), and is coming from the same distribution ($Normal(\mu,\sigma)$)
+  
+- **Frequentist model**: that will give us the *maximu likelihood estimate* (the sample mean) of the time it takes to press the space bar
+  + this owuld be enough ifnmroamtion to write the formular in `R`, `lm(rt ~ 1)`
+
+- **Bayesian linear model**: we will also need to define *priors* for the two parameters of our model
+  + let's say we know for sure that the time it takes to press a key will be positive and lower than a minute (0-60,000ms), but we don't want to make a commitment regarding which values are more likely
+  + we encode what we know about the noise in the task in $\sigma$: this parameter must be positive and we'll assume any value below 2000ms is equally likely; such *flat* or *uniformative* priors are generaly strongly discouraged: it will almost never be the best approximation of what we know
+  + let's start with such priors, regardless:
+  
+$$
+\begin{aligned}
+\mu &\sim \mathit{Uniform}(0, 60000) \\
+\sigma &\sim \mathit{Uniform}(0, 2000) 
+\end{aligned}
+\tag{3.4}
+$$
+
+- load the data from the `bcogsci` package
+
+```{r}
+data("df_spacebar")
+head(df_spacebar)
+```
+
+- plot the data before you do anything else; as we suspected, the data lock a bit (positively) skewed, but let's ignore that for now
+
+```{r}
+#| fig-width: 6
+#| fig-align: center
+
+df_spacebar %>%
+  ggplot(aes(rt)) +
+  labs(title = "Button-press data",
+       x = "response times") +
+  geom_density() +
+  theme_bw()
+```
+
+#### Specifying the model in `brms`
+
+- fit the model defined by equations \ref{3.2} and \ref{3.4}
+
+```{r}
+fit_press <- brm(
+  rt ~ 1,
+  data = df_spacebar,
+  family = gaussian(),
+  prior = c(
+    prior(
+      uniform(0, 60000),
+      class = Intercept, # mean
+      lb = 0,
+      ub = 60000
+    ),
+    prior(
+      uniform(0, 2000),
+      class = sigma, # sd
+      lb = 0,
+      ub = 2000
+    )
+  ),
+  chains = 4,
+  iter = 2000,
+  warmup = 1000
+)
+```
+
+- some differences between this syntax and `lm()`:
+  1. `family = gaussian()` makes it explicity that the underlying likelihood function is a normal distribution
+    + this is implicit in `lm()`
+    + the default for `brms` is `gaussian()`
+    + other linking function are possible, just like in the `glm()` function
+  2. `prior` takes as argument a vector of priors
+    + this is optional, but we should ***always*** explicitly specify each prior; otherwise `brms` will define priors but they may or may not be appropriate
+    + this is why we need `lb` (lower bound) and `upper bound` to specify the plausible range of values to sample from in cases where the distribution is restricted (e.g., reaction times cannot be negative, so `lb` must be at least 0)
+  3. `chains` refers to the number of independent runs for sampling
+    + default = 4
+  4. `iter` refers to the number of iteratiosn that a sampler makes to sample from the posterior distribution of each paramter
+    + default = 2000
+  5. `warmup` refers to the number of iterations from the start of sampling that are eventually discarded
+    + default = $\frac{`iter`}{2}$
+
+- the last 3 options determine the behaviour of the sampling algorithm
+
+#### Sampling and convergence in a nutshell
+
+- our 4 chains start independently from each other
+  + each chain "searches" for samples of the posterior distribution in a multidimensional space, where each parameter corresponds to a dimension
+  + the shape of this space is determined by the priors and likelihood
+  + chains start at a random location and each iteraton takes one sample each
+  + when sampling begins, the samples may or may not belong to the posterior distributions of the parameters; eventually the chains end up in the vicinity of the posterior and from then on the samples will belong to the posterior
+  
+- therefore, 
