@@ -28,17 +28,17 @@ knitr::opts_chunk$set(echo = T,
                       eval = T,
                       error = F,
                       warning = F,
-                      message = F)
+                      message = F,
+                      cache = T
+                      )
 
 # suppress scientific notation
 options(scipen=999)
 
 # list of required packages
 packages <- c( #"SIN", # this package was removed from the CRAN repository
-               "MASS", "dplyr", "tidyr", "purrr", "extraDistr", "ggplot2", "loo", "bridgesampling", "brms", "bayesplot", "tictoc", "hypr", "bcogsci", "papaja", "grid", "kableExtra", "gridExtra", "lme4", "cowplot", "pdftools", "cmdstanr", "rootSolve", "rstan"
+               "MASS", "dplyr", "tidyr", "purrr", "extraDistr", "ggplot2", "loo", "bridgesampling", "brms", "bayesplot", "tictoc", "hypr", "bcogsci", "papaja", "grid", "kableExtra", "gridExtra", "lme4", "cowplot", "pdftools", "cmdstanr", "rootSolve", "rstan", "SBC"
   )
-
-# NB: if you haven't already installed bcogsci through devtools, it won't be loaded
 
 ## Now load, or install & load, all of the packages listed in 'packages'
 package.check <- lapply(
@@ -51,7 +51,43 @@ package.check <- lapply(
   }
 )
 
+# NB: if you haven't already installed bcogsci through devtools, it won't be loaded; to do so:
+# devtools::install_github("bnicenboim/bcogsci")
+
 # this is also required, taken from the textbook:
+## Save compiled models:
+rstan_options(auto_write = FALSE)
+## Parallelize the chains using all the cores:
+options(mc.cores = parallel::detectCores())
+# To solve some conflicts between packages
+select <- dplyr::select
+extract <- rstan::extract
+```
+
+Or, alternatively, the exact code taken from the book (as of Feb. 12 2023):
+
+```{r, eval = F}
+library(MASS)
+## be careful to load dplyr after MASS
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(extraDistr)
+library(ggplot2)
+library(loo)
+library(bridgesampling)
+library(brms)
+library(bayesplot)
+library(tictoc)
+library(hypr)
+library(bcogsci)
+library(lme4)
+library(rstan)
+library(cmdstanr) # This package is optional, see https://mc-stan.org/cmdstanr/
+library(SBC) # This package is optional, see https://hyunjimoon.github.io/SBC/
+library(SHELF)
+library(rootSolve)
+
 ## Save compiled models:
 rstan_options(auto_write = FALSE)
 ## Parallelize the chains using all the cores:
@@ -552,21 +588,21 @@ plot(x,dbeta(x,shape1=a.star,shape2=b.star),type="l",
 ## Bayes' rule in action: Poisson-Gamma conjugate case
 
 - imagine a dataset with the number of regressions as a DV (discrete continuous)
-- a and b are called `shape` and `scale`
+- a and b are called `shape` and `rate``
 
 ```{r}
 # simulate data
 round(rgamma(
   n=10,
   shape=3,
-  scale=1),
+  rate=1),
   2)
 ```
 
 ```{r}
 # plot
 x<-seq(0,10,by=0.01)
-plot(x,dgamma(x,shape=3,scale=1),type="l",
+plot(x,dgamma(x,shape=3,rate=1),type="l",
      ylab="density")
 ```
 
@@ -600,3 +636,421 @@ Take aways
 - when data are sparse, the prior will dominate in determining the posterior mean
 - when a lot of data are available, the MLE will dominate in determining the posterior mean
 - give sparse data, informative priors based on expert knowledge, existing data, or meta-analysis will play an important role
+
+# Week 3: Computational Bayes
+
+## Computational Bayes I
+
+Quick review:
+
+- Bayes' rule when A and B are **discrete events**:
+
+\begin{equation}
+P(A\mid B) = \frac{P(B\mid A) P(A)}{P(B)}
+\tag{2.1}
+\end{equation}
+
+- Bayes' rule with distributions ($\theta$ can be a vector of parameters):
+
+\begin{equation}
+p(\theta\mid y) = \frac{p(y\mid \theta) p(\theta)}{p(y)}
+\tag{2.1}
+\end{equation}
+
+- $\theta$ can be a vector of parameters in multivariate cases; this makes it difficult to calculate a posterior distribution (joint distribution) on paper 
+- the posterior distribution is of central interest to us
+
+- we're really interested in the posterior distribution *up to proportionatlity* (without the )
+
+- imagine we know what the posterior distribution is
+  + you can now find out the creidble interval
+
+```{r}
+# 95% credible interval
+qgamma(
+  c(.025,.975), 
+  shape=20, # a
+  rate=7) # b
+```
+
+- but with a large number of samples from this distirbution, we can use these samples to draw essentially the same conclusions:
+
+```{r}
+# generate posterior samples from a gamma distribution: 4000 obvs
+lambda_posterior <- rgamma(
+  40000, # n
+  shape = 20, # a
+  rate = 7 # b
+)
+
+# now compute CrI using samples from the posterior distribution
+round(quantile(lambda_posterior, probs = c(.025,.975)),2)
+```
+
+- this is *obtaining samples for the posterior distributions*
+- Bayesian analyses is really ***uncertainty quantification***
+- these samples from the posterior distribution are what we can get through MCMC sampling
+
+- our main goal will always be to obtain this posterior distribution:
+
+\begin{equation}
+p(\theta\mid{y})
+\end{equation}
+
+- in the beta-binomial and Poisson-gamma cases, we could derive the posterior analystically
+- in more complex Bayesian models, we need to use some sampling method (MCMC sampling) to obtain **posterior samples** of the parameters
+
+An example:
+
+- suppose we have data from a single subject, whose only task is to repeatedly press the spacebar without paying attention to any stimuli
+- the data are response times in ms per trial
+- we would like to know how long it takes to press a key for this subject
+
+```{r}
+library(bcogsci)
+data("df_spacebar")
+head(df_spacebar,n=2)
+```
+
+- good to always first look at your data, so let's look at a density plot:
+
+```{r}
+ggplot(df_spacebar, aes(rt)) +
+  geom_density() +
+  xlab("response times") +
+  ggtitle("Button-press data")+theme_bw()
+```
+
+- we see the peak is at about 180ms, and there's a long tail
+
+- assume this statistical model (n: the n-th row in the data frame):
+
+\begin{equation}
+rt_n \sim \mathit{Normal}(\mu, \sigma)
+end{equation}
+\end{equation}
+
+## Computational Bayes II
+
+- assume this statistical model (n: the n-th row in the data frame):
+
+\begin{equation}
+rt_n \sim \mathit{Normal}(\mu, \sigma)
+\end{equation}
+
+- this model can also be written for a linear model, where rt_{n} = some intercept ($\mu$) + noise ($\varepsilon$), where the residuals of the noise have a normal distribution ($iid$ means 'indepednent and identically distributed')
+
+\begin{equation}
+rt_n = \mu + \varepsilon \hbox{, where } \varepsilon_n \stackrel{iid}{\sim} \mathit{Normal}(0,\sigma) 
+\end{equation}
+
+- so it is assumed that the residuals are normally distributed, and that there is some unknown variable $\mu$ and some unknown parameter $\sigma$, that represents the variability around $\mu$, and that the noise ($\varepsilon$) is Gaussian (normally distributed)
+
+- in a Frequentist model, we'd run:
+
+```{r}
+m <- lm(rt~1, df_spacebar)
+coef(m) # intercept, i.e., the mean value of the data
+sigma(m) # residual error
+
+# these are the same as mean and sd of RT
+mean(df_spacebar$rt)
+sd(df_spacebar$rt)
+```
+
+- the intercept and residual error are just the maximum likelihood estimates from the data, i.e., the mean and sd
+- the linear model is pretty much giving you 2 MLE, one for the intercept and for the residual error
+
+- **Frequentist**: $\mu$ and $\sigma$ are *fixed*, unknown point values in frequentist models
+- in the **Bayesian world**, $\mu$ and $\sigma$ are *random variables* and need prior distributions specified for them
+  - i.e., we don't *just* have the MLE
+  - we define priors on the $\mu$ and $\sigma$ priors; these are no longer unknown points out there in nature, there is some prior knowledge being brought in
+
+- let's start with (unrealistic) flat/uniform priors:
+
+\begin{equation}
+\mu \sim Uniform(0,60000)
+\sigma \sim Uniform(0,2000)
+\end{equation}
+
+- uniform priors mean that all the values between a and b are equally likely (hence the 'flat' label; it's not a curve but a flat line)
+
+- you can choose whatever prior makes sense to you
+
+- the function `brm` has the same formula syntax as `lm`
+
+```{r}
+fit_press <- brm(
+  # model specification
+  rt ~ 1,
+  data = df_spacebar,
+  # the likelihood assumed:
+  family = gaussian(),  # likelihood has normal distr.
+  #   prior specifications:
+  prior = c(
+    prior(
+      uniform(0, 60000), # uniform/flat prior
+      class = Intercept, # mean
+      lb = 0,  # lb/ub: technical details, truncate the sampling
+      ub = 60000
+    ),
+    prior(uniform(0, 2000), # uniform/flat prior
+          class = sigma, # sd
+          lb = 0,
+          ub = 2000)
+  ),
+  # sampling specifications
+  # Technical stuff
+  # backend = "cmdstanr",
+  chains = 4, # this is the default
+  iter = 2000, # this is the default
+  warmup = 1000 # this is the default
+  )
+```
+
+- ***chains***: the number of *independent runs* for sampling (by default 4)
+- ***iter***: the number of *iterations* that the *sampler* makes to sample from the posterior distribution of each paramter (by default 2000)
+- ***warmup***: the number of *iterations* from the *start of sampling* that are eventually discarded (by default half of 'iter')   (in WinBUGS/JAGS this is called burn-in)
+
+- **relevant reading**: sampling and convergence in a nutshell in Ch. 3
+
+```{r}
+plot(fit_press) 
+```
+
+- we get a visual graphic of how the sample was searching in the posterior distribution
+- the caterpillar plot shows us the chains sitting on top of each other; a **fat hairy caterpillar** means the chains are all consistantly sampling from the same distribution, this is *good*
+- if we don't see a afat hairy caterpillar, this indicates a **convergence failure** (if the chains are not really aligning)
+
+- also try using `shinystan`:
+
+```{r, eval = F}
+library(shinystan)
+launch_shinystan(fit_press)
+```
+
+```{r}
+# extract the posterior distributions as vectors
+as_draws_df(fit_press) %>% 
+  head(3)
+
+# compute mean
+as_draws_df(fit_press)$b_Intercept %>% 
+  mean()
+
+# compute 95% CrI for the mean
+as_draws_df(fit_press)$b_Intercept %>%
+  quantile(c(.025,.975))
+
+# compute sd
+as_draws_df(fit_press)$sigma %>% 
+  mean()
+
+# computer 95% CrI for sigma
+as_draws_df(fit_press)$sigma %>% 
+  quantile(c(.025,.975))
+```
+
+## Computational Bayes III
+
+- we'll now talk about
+  + prior predictive distributions
+  + posterior predictive distributions
+  
+### Prior predictive distributions {-}
+
+The model specification, again:
+
+\begin{equation}
+\mu \sim Uniform(0,6000)
+\sigma \sim Uniform(0,2000)
+rt_{n} \sim Normal(\mu, \sigma)
+\end{equation}
+
+- we can generate the **prior predictive distirubiton** given the model above ($\theta =< \mu,\sigma>$) by integrating out the theta parameters
+
+- to do this, do the following many times:
+
+1. Take one sample from each of the priors
+
+```{r}
+mu <- runif(1, min=0, max=60000)
+sigma <- runif(1, 0, 2000)
+```
+
+2. Plug those samples into the probability density/mass function used as the lieklihood in the model to generate a data set $y_{pred1}, ..., y_{predn}$
+
+```{r}
+y_pred_1 <- rnorm(n=5, mu, sigma)
+y_pred_1
+```
+
+- each sample is an imaginary or portential data set
+- in the textbook, there's code for generating prior predictive data using R
+
+- what are our options regarding the priors?
+- in the book, there are some classifications of priors ($Normal+$ indicates normal distribution truncated at 0, i.e., no negative values):
+  + ***flat***, uniformative priors: e.g., $\mu \sim Uniform(-10^{20}, 10^{20})$
+      - very wide range for mean, and very large sd
+      - but for reaction/reading times, this isn't reasonable
+  + ***regularising*** priors: e.g., $\mu \sim Normal_+(0,1000)$
+      - here we use 0-truncated normal distribution (positive values only)
+      - but the only information we've given is really that the mean must be positive
+  + ***principled*** priors: e.g., $\mu \sim Normal(250,100)$
+      - principled because it centeres the mean at 250, which is reasonable, but is quite liberal in the sd (=100)
+  + ***informative*** priors: e.g., $\mu \sim Normal+(200,20)$
+      - if doing hypothesis testing with Bayes' factor, using informative priors is extremely important
+      - this is a much tighter prior; these are generally used in real research when possible (given enough prior knowledge)
+      
+## Computation Bayes IV
+
+- now we'll see what happens when we specify different priors in our model
+- there's no standard terminology for types of priors, but we use:
+  + flat/uninformative
+  + regularising
+  + principled
+  + informative
+  
+- we're going to see how using these different types of prior specifications alter the posterior distribution
+  + we'll run a **sensitivity analysis** to see how affected by the prior our posterior
+  + if you ahve lots of data, the posterior should be affected mainly by the likelihood estimate
+  
+- let's refit our model with ***flat, uninformative priors***:
+
+\begin{equation}
+\mu \sim Uniform(-10^6,10^6)
+\sigma \sim Uniform(0,10^6)
+rt_{n} \sim Normal(\mu, \sigma)
+\end{equation}
+
+```{r}
+# new model with uninformative priors
+fit_press_unif <- brm(
+  # model specification
+  rt ~ 1,
+  data = df_spacebar,
+  # the likelihood assumed:
+  family = gaussian(),  # likelihood has normal distr.
+  #   prior specifications:
+  prior = c(
+    prior(
+      uniform(-10^6, 10^6), # uniform/flat prior
+      class = Intercept, # mean
+          lb = -10^6,
+          ub = 10^6
+    ),
+    prior(uniform(0, 10^6), # uniform/flat prior
+          class = sigma, # sd
+          lb = 0,
+          ub = 10^6
+          )
+  ),
+  # sampling specifications
+  # Technical stuff
+  # backend = "cmdstanr",
+  chains = 4, # this is the default
+  iter = 2000, # this is the default
+  warmup = 1000 # this is the default
+  )
+```
+
+
+```{r}
+# earlier model
+as_draws_df(fit_press)$b_Intercept %>%
+  quantile(c(0.025, 0.975))
+```
+
+```{r}
+# new flat/uninformative model
+as_draws_df(fit_press_unif)$b_Intercept %>%
+  quantile(c(0.025, 0.975))
+```
+
+- and a very ***informative prior***:
+
+\begin{equation}
+\mu \sim Normal(400,10)
+\sigma \sim Normal_{+}(100,10)
+rt_{n} \sim Normal(\mu, \sigma)
+\end{equation}
+
+```{r}
+# new model with uninformative priors
+fit_press_inf <- brm(
+  # model specification
+  rt ~ 1,
+  data = df_spacebar,
+  # the likelihood assumed:
+  family = gaussian(),  # likelihood has normal distr.
+  #   prior specifications:
+  prior = c(
+    prior(
+      normal(400, 10), 
+      class = Intercept),
+    # brms knows that SDs need to be bounded
+    # to exclude values below zero:
+    prior(normal(100,10), # informative
+          class = sigma # sd
+          )
+  ),
+  # sampling specifications
+  # Technical stuff
+  # backend = "cmdstanr",
+  chains = 4, # this is the default
+  iter = 2000, # this is the default
+  warmup = 1000 # this is the default
+  )
+```
+
+```{r}
+# new flat/uninformative model
+as_draws_df(fit_press_inf)$b_Intercept %>%
+  quantile(c(0.025, 0.975))
+```
+
+- these posteriors are shifted a bit to the right (bigger) because the prior was very tight, but not by much
+
+- and with a ***principled prior***:
+
+\begin{equation}
+\mu \sim Normal(200,100)
+\sigma \sim Normal_{+}(50,50)
+rt_{n} \sim Normal(\mu, \sigma)
+\end{equation}
+
+```{r}
+fit_press_prin <- brm(rt ~ 1,
+  data = df_spacebar,
+  family = gaussian(),
+  prior = c(
+    prior(normal(200, 100), class = Intercept),
+    # brms knows that SDs need to be bounded
+    # to exclude values below zero:
+    prior(normal(50, 50), class = sigma)
+  ),
+  # sampling specifications
+  # Technical stuff
+  # backend = "cmdstanr",
+  chains = 4, # this is the default
+  iter = 2000, # this is the default
+  warmup = 1000 # this is the default
+)
+```
+
+```{r}
+# new principled model
+as_draws_df(fit_press_prin)$b_Intercept %>%
+  quantile(c(0.025, 0.975))
+```
+
+- between the informative and principled priors, we see the more uncertain (principled) prior has posterior more similar to the posteriors in the uninformative model
+  + this means that with a principled prior the model is still relying mostly on the likelihood distribution
+  + this is what we want
+  
+- this was our sensitivity analysis
+  + it showed that the posterior is not overly affected by the choice of prior (good!)
+  + the posterior is a compromise between the prior and the likelihood
+  + informative prior with *sparse data* $\rightarrow$ the prior will dominate in determining the posterior
+  + a lot of data $\rightarrow$ the likelihood will dominate in determining the posterior
+- it is good practice to carry out a sensitivity analysis (with more experience you'll have a better handle of when it's absolutely necessary)

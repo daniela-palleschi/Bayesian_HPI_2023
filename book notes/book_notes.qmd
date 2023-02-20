@@ -793,3 +793,21 @@ p_beta
   2. decide on prior for all the parameters involved in the likelihood function
   3. using this model (the likelihood and the priors) derive the posterior distribution of each parameter
   4. draw inferences about our research question basedon the posterior distribution of the parameter
+  
+# Ch. 3 - Computational Bayesian data analysis
+
+- for real datasets, it was too cumbersome to do all the math to dertermine posterior distributions
+  + thanks to probabilistic programming languages, we can define our models without have to do all the math
+  
+## Deriving the posterior through sampling
+
+- recall the example cloze task for *It's raining, I'm going to take the...*, with the 'correct' answer *bus* ('umbrella' in the book but to me 'bus' is the most natural completion)
+  + imagine 80 'successes' and 20 'failures'
+  + assuming a binomial distribution as the likelihood function, and $Beta(a = 4, b = 4)$ as a prior distribution for the cloze probability
+  + if we can obtain samples from the posterior distribution or $\theta$, instead of an analystically derived posterior distribution, given enough samples we will have a good *approximation* of the posterior distribution
+  + '*obtain samples*' here means a situation similar to when we use `rbinom` or `rnorm` to obtain samples from a particular distribution
+  + assume we used some probabilistic prgramming langauge to obtain 20,000 samples from the posterior distribution of the cloze probability $\theta$
+
+## Bayesian regression models using Stan: brms
+
+### A simple linear model: using 

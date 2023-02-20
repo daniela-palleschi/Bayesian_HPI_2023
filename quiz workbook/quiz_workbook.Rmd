@@ -401,7 +401,7 @@ q2 <- qnorm(p = .1, 650,125, lower.tail=F)
 
 # Week 2
 
-#### Question 1 (1.0 Pts) {-}
+## Question 1 (1.0 Pts) {-}
 
 We ask a subject 10 yes/no questions, and the subject returns 0 correct answers. We assume a binomial likelihood function for this data. We also assume a Beta(1, 1) prior on the parameter θ, which represents the probability of success. Write down the posterior distribution of the θ parameter.
 
@@ -421,3 +421,33 @@ post_b <- b + n - k; post_b
 ```
 
 The answer is *Beta(*`r post_a`,`r post_b`*)*.
+
+## Question 2 (1 Pt) {-}
+
+Suppose you have n independent and identically distributed data points from the Geometric distribution, which has the likelihood function:
+
+\begin{equation}
+f(x|\theta)=\theta(1-\theta)^{\sum_{i=1}^n x_i}
+\end{equation}
+
+where the data points $x$ can have values 0, 1, 2, 3, … Let the prior on $\theta$ be $Beta (a, b)$, a beta distribution with parameters a, b. The posterior distribution is a beta distribution with parameters $a*$ and $b*$. Determine these parameters in terms of a, b and the sum of all x's.
+
+Solution:
+
+The prior is Beta(a,b).
+
+The posterior likelihood is: $\theta(1 - \theta)^{\sum^{n}_{i=1^{x_{i}-1}}}$
+
+The posterior up to proportionality is:
+
+$[\theta^{a-1}(1 - \theta)^{b-1}][\theta(1 - \theta)^{\sum^{n}_{i=1^{x_{i}-1}}}]$
+
+Re-arranging terms, where we add the exponents from either side (and where there is no exponent, we add '+1' because no exponent = 'to the power of 1'):
+
+$\theta^{a + 1 - 1}(1 - \theta)^{b + \sum^{n}_{i=1^{x_{i}-1}}}$
+
+If the posterior is a Beta distribution then its parameters are: $Beta(a + 1, b + \sum^{n}_{i=1^{x_{i}-1}})$. Thus:
+
+$a* = a +1$
+
+$b* = b + \sum^{n}_{i=1^{x_{i}-1}}$
