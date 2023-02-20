@@ -66,7 +66,7 @@ extract <- rstan::extract
 
 Or, alternatively, the exact code taken from the book (as of Feb. 12 2023):
 
-```{r, eval = F}
+```{r, eval = F, include = F}
 library(MASS)
 ## be careful to load dplyr after MASS
 library(dplyr)
@@ -645,17 +645,17 @@ Quick review:
 
 - Bayes' rule when A and B are **discrete events**:
 
-\begin{equation}
+$$
 P(A\mid B) = \frac{P(B\mid A) P(A)}{P(B)}
 \tag{2.1}
-\end{equation}
+$$
 
 - Bayes' rule with distributions ($\theta$ can be a vector of parameters):
 
-\begin{equation}
+$$
 p(\theta\mid y) = \frac{p(y\mid \theta) p(\theta)}{p(y)}
 \tag{2.1}
-\end{equation}
+$$
 
 - $\theta$ can be a vector of parameters in multivariate cases; this makes it difficult to calculate a posterior distribution (joint distribution) on paper 
 - the posterior distribution is of central interest to us
@@ -693,9 +693,9 @@ round(quantile(lambda_posterior, probs = c(.025,.975)),2)
 
 - our main goal will always be to obtain this posterior distribution:
 
-\begin{equation}
+$$
 p(\theta\mid{y})
-\end{equation}
+$$
 
 - in the beta-binomial and Poisson-gamma cases, we could derive the posterior analystically
 - in more complex Bayesian models, we need to use some sampling method (MCMC sampling) to obtain **posterior samples** of the parameters
@@ -725,24 +725,24 @@ ggplot(df_spacebar, aes(rt)) +
 
 - assume this statistical model (n: the n-th row in the data frame):
 
-\begin{equation}
+$$
 rt_n \sim \mathit{Normal}(\mu, \sigma)
 end{equation}
-\end{equation}
+$$
 
 ## Computational Bayes II
 
 - assume this statistical model (n: the n-th row in the data frame):
 
-\begin{equation}
+$$
 rt_n \sim \mathit{Normal}(\mu, \sigma)
-\end{equation}
+$$
 
-- this model can also be written for a linear model, where rt_{n} = some intercept ($\mu$) + noise ($\varepsilon$), where the residuals of the noise have a normal distribution ($iid$ means 'indepednent and identically distributed')
+- this model can also be written for a linear model, where rt_{n} = some intercept ($\mu$) + noise ($\varepsilon$), where the residuals of the noise have a normal distribution ($iid$ means 'independent and identically distributed')
 
-\begin{equation}
+$$
 rt_n = \mu + \varepsilon \hbox{, where } \varepsilon_n \stackrel{iid}{\sim} \mathit{Normal}(0,\sigma) 
-\end{equation}
+$$
 
 - so it is assumed that the residuals are normally distributed, and that there is some unknown variable $\mu$ and some unknown parameter $\sigma$, that represents the variability around $\mu$, and that the noise ($\varepsilon$) is Gaussian (normally distributed)
 
@@ -768,10 +768,10 @@ sd(df_spacebar$rt)
 
 - let's start with (unrealistic) flat/uniform priors:
 
-\begin{equation}
-\mu \sim Uniform(0,60000)
+$$
+\mu \sim Uniform(0,60000)\\
 \sigma \sim Uniform(0,2000)
-\end{equation}
+$$
 
 - uniform priors mean that all the values between a and b are equally likely (hence the 'flat' label; it's not a curve but a flat line)
 
@@ -861,11 +861,11 @@ as_draws_df(fit_press)$sigma %>%
 
 The model specification, again:
 
-\begin{equation}
-\mu \sim Uniform(0,6000)
-\sigma \sim Uniform(0,2000)
+$$
+\mu \sim Uniform(0,6000)\\
+\sigma \sim Uniform(0,2000)\\
 rt_{n} \sim Normal(\mu, \sigma)
-\end{equation}
+$$
 
 - we can generate the **prior predictive distirubiton** given the model above ($\theta =< \mu,\sigma>$) by integrating out the theta parameters
 
@@ -917,11 +917,13 @@ y_pred_1
   
 - let's refit our model with ***flat, uninformative priors***:
 
-\begin{equation}
-\mu \sim Uniform(-10^6,10^6)
-\sigma \sim Uniform(0,10^6)
-rt_{n} \sim Normal(\mu, \sigma)
-\end{equation}
+$$
+\begin{align}
+\mu &\sim Uniform(-10^6,10^6)\\
+\sigma &\sim Uniform(0,10^6)\\
+rt_{n} &\sim Normal(\mu, \sigma)
+\end{align}
+$$
 
 ```{r}
 # new model with uninformative priors
@@ -969,11 +971,11 @@ as_draws_df(fit_press_unif)$b_Intercept %>%
 
 - and a very ***informative prior***:
 
-\begin{equation}
+$$
 \mu \sim Normal(400,10)
 \sigma \sim Normal_{+}(100,10)
 rt_{n} \sim Normal(\mu, \sigma)
-\end{equation}
+$$
 
 ```{r}
 # new model with uninformative priors
@@ -1013,11 +1015,11 @@ as_draws_df(fit_press_inf)$b_Intercept %>%
 
 - and with a ***principled prior***:
 
-\begin{equation}
+$$
 \mu \sim Normal(200,100)
 \sigma \sim Normal_{+}(50,50)
 rt_{n} \sim Normal(\mu, \sigma)
-\end{equation}
+$$
 
 ```{r}
 fit_press_prin <- brm(rt ~ 1,
@@ -1054,3 +1056,306 @@ as_draws_df(fit_press_prin)$b_Intercept %>%
   + informative prior with *sparse data* $\rightarrow$ the prior will dominate in determining the posterior
   + a lot of data $\rightarrow$ the likelihood will dominate in determining the posterior
 - it is good practice to carry out a sensitivity analysis (with more experience you'll have a better handle of when it's absolutely necessary)
+
+## Computational Bayes V
+
+- it's best to use the log normal with right-skewed data
+
+### Using the log-normal likelihood {-}
+
+- if $y$ is log-normally distributed, then log($y$) is normally distributed
+  + the log-normal distribution is also defined using the parameters location ($\mu$) and scale ($\sigma$)
+  
+- $\mu$ and $\sigma$ are now on the log millisecond scale
+
+$$
+\begin{align}
+log(y) &\sim Normal(\mu,\sigma)\\
+y &\sim LogNormal(\mu,\sigma)
+\end{align}
+$$
+
+- generating simulated data from a log normal
+
+```{r}
+mu <- 6
+sigma <- 0.5
+N <- 500000
+
+# generate N random smaples from log-normal distribution
+sl <- rlnorm(N, mu, sigma)
+```
+
+```{r}
+ggplot(tibble(samples = sl), aes(samples)) +
+  geom_histogram(aes(y = ..density..), binwidth = 50) +
+  ggtitle("Log-normal distribution\n") +
+  coord_cartesian(xlim = c(0, 2000))
+```
+
+- we need to change our likelihood functions and the scale of our priors!
+
+$$
+rt_n \sim LogNormal(\mu,\sigma)
+$$
+
+- uniform priors:
+
+$$
+\begin{align}
+\mu &\sim Uniform(0,11)\\
+\sigma &\sim Uniform(0,1)
+\end{align}
+$$
+- generate prior predictive distributions:
+
+```{r}
+normal_predictive_distribution <-
+  function(mu_samples, sigma_samples, N_obs) {
+    # empty data frame with headers:
+    df_pred <- tibble(
+      trialn = numeric(0),
+      rt_pred = numeric(0),
+      iter = numeric(0)
+    )
+    # i iterates from 1 to the length of mu_samples,
+    # which we assume is identical to
+    # the length of the sigma_samples:
+    for (i in seq_along(mu_samples)) {
+      mu <- mu_samples[i]
+      sigma <- sigma_samples[i]
+      df_pred <- bind_rows(
+        df_pred,
+        tibble(
+          trialn = seq_len(N_obs), # 1, 2,... N_obs
+          rt_pred = rnorm(N_obs, mu, sigma),
+          iter = i
+        )
+      )
+    }
+    df_pred
+  }
+```
+
+```{r}
+N_samples <- 1000
+N_obs <- nrow(df_spacebar)
+mu_samples <- runif(N_samples, 0, 11)
+sigma_samples <- runif(N_samples, 0, 1)
+prior_pred_ln <- normal_predictive_distribution(
+  mu_samples = mu_samples,
+  sigma_samples = sigma_samples,
+  N_obs = N_obs
+) %>%
+  mutate(rt_pred = exp(rt_pred))
+```
+
+- now let's take a look at some distributions of the simulated data sets
+
+```{r}
+prior_pred_ln %>%
+  group_by(iter) %>%
+  summarize(
+    min_rt = min(rt_pred),
+    max_rt = max(rt_pred),
+    mean_rt = mean(rt_pred),
+    median_rt = median(rt_pred)
+  ) %>%
+  pivot_longer(cols = ends_with("rt"), names_to = "stat", values_to = "rt") %>%
+  mutate(stat = factor(stat, levels = c("mean_rt", "median_rt", "min_rt", "max_rt"))) %>%
+  ggplot(aes(rt)) +
+  scale_x_continuous("Response times in ms",
+    trans = "log", breaks = c(0.001, 1, 10, 100, 1000, 10000, 100000)
+  ) +
+  geom_histogram(aes(y = ..density..)) +
+  ylab("density") +
+  facet_wrap(~stat, ncol = 1)+theme_bw()
+```
+
+- these are very broad ranges, because our prior specifications were so broad
+
+## Computational Bayes VI
+
+- we saw a model with ridiculous priors
+  + we know they're ridiculous because of our prior knowledge about reaction times
+  
+  - more informative priors:
+
+$$
+\begin{align}
+\mu &\sim Normal(6,1.5)\\
+\sigma &\sim Normal_+(0,1)
+\end{align}
+$$
+- and update our model
+  + `brms` knows sd is truncated at 0 so we don't have to specify `lb` and `ub` here; if you were writing directly in Stan code you'd have to specify it yourself
+
+```{r}
+df_spacebar_ref <- df_spacebar %>%
+  mutate(rt = rep(1, n()))
+fit_prior_press_ln <- brm(rt ~ 1,
+  data = df_spacebar_ref,
+  family = lognormal(), # log instead of gaussian
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept), # on the log scale
+    prior(normal(0, 1), class = sigma)
+  ),
+  sample_prior = "only", # produce prior samples
+  control = list(adapt_delta = .9) # this was added for convergence reasons
+)
+```
+
+- to look at distribution of means of repeated samples based on priors
+
+```{r}
+pp_check(fit_prior_press_ln, type = "stat", stat = "mean",
+         prefix = "ppd") +
+  coord_cartesian(xlim = c(0.001, 300000)) +
+  scale_x_continuous("Response times [ms]",
+    trans = "log",
+    breaks = c(0.001, 1, 100, 1000, 10000, 100000),
+    labels = c(
+      "0.001", "1", "100", "1000", "10000",
+      "100000"
+    )
+  ) +
+  ggtitle("Prior predictive distribution of means")
+```
+
+- we see the maximum values are a bit too large, but these are a huge improvement over those that we saw for the uniform priors in the last video
+
+```{r}
+p1 <- pp_check(fit_prior_press_ln, type = "stat", stat = "mean", prefix = "ppd") +
+  coord_cartesian(xlim = c(0.001, 300000)) +
+  scale_x_continuous("Response times [ms]",
+    trans = "log",
+    breaks = c(0.001, 1, 100, 1000, 10000, 100000),
+    labels = c(
+      "0.001", "1", "100", "1000", "10000",
+      "100000"
+    )
+  ) +
+  ggtitle("Prior predictive distribution of means")
+p2 <- pp_check(fit_prior_press_ln, type = "stat", stat = "min", prefix = "ppd") +
+  coord_cartesian(xlim = c(0.001, 300000)) +
+  scale_x_continuous("Response times [ms]",
+    trans = "log",
+    breaks = c(0.001, 1, 100, 1000, 10000, 100000),
+    labels = c(
+      "0.001", "1", "100", "1000", "10000",
+      "100000"
+    )
+  ) +
+  ggtitle("Prior predictive distribution of minimum values")
+p3 <- pp_check(fit_prior_press_ln, type = "stat", stat = "max", prefix = "ppd") +
+  coord_cartesian(xlim = c(0.001, 300000)) +
+  scale_x_continuous("Response times [ms]",
+    trans = "log",
+    breaks = c(0.001, 1, 100, 1000, 10000, 100000),
+    labels = c(
+      "0.001", "1", "10", "1000", "10000",
+      "100000"
+    )
+  ) +
+  ggtitle("Prior predictive distribution of maximum values")
+cowplot::plot_grid(p1, p2, p3, nrow = 3, ncol =1)
+```
+
+- now fit the model to the data with a log normal likelihood
+
+```{r}
+fit_press_ln <- brm(rt ~ 1,
+  data = df_spacebar,
+  family = lognormal(),
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(0, 1), class = sigma)
+  )
+)
+```
+
+```{r}
+fit_press_ln
+```
+
+## Computational Bayes
+
+- now we'll evaluate the log-normal model with these relatively informative priors
+
+- back-transforming to ms:
+
+```{r}
+estimate_ms <- exp(as_draws_df(fit_press_ln)$b_Intercept)
+
+round(c(mean = mean(estimate_ms),
+  sd = sd(estimate_ms),
+  quantile(estimate_ms,
+           probs = c(.025,.975))),
+  1)
+```
+
+- these credible intervals are conditioned on the data we happened to get, they don't reflect any *true* mean necessarily
+
+- we can also do a posterior predictive check:
+
+```{r}
+pp_check(fit_press_ln, ndraws = 100)
+```
+
+- question: are the posterior predicted data now more similar to the observed data, compared to the case where we had a Normal likelihood?
+
+```{r}
+fit_press_norm <- brm(rt ~ 1,
+  data = df_spacebar,
+  family = gaussian(),
+  prior = c(
+    prior(uniform(0, 60000), class = Intercept, lb = 0,
+          ub = 60000),
+    prior(uniform(0, 2000), class = sigma, lb = 0,
+          ub = 2000)
+  ),
+  chains = 4,
+  iter = 2000,
+  warmup = 1000
+)
+```
+
+```{r}
+ggpubr::ggarrange(
+  pp_check(fit_press_norm, 
+         type = "stat", stat = "min") +
+  ggtitle("Normal model (min)")+
+  theme(legend.position = "none"),
+pp_check(fit_press_norm, 
+         type = "stat", stat = "max") +
+  ggtitle("Normal model (max)")+
+  theme(legend.position = "none"),
+pp_check(fit_press_ln, 
+         type = "stat", stat = "min") +
+  ggtitle("Log model (min)")+
+  theme(legend.position = "none"),
+pp_check(fit_press_ln, 
+         type = "stat", stat = "max") +
+  ggtitle("Log model (max)") +
+  theme(legend.position = "none"),
+cowplot::get_legend(pp_check(fit_press_norm) + theme(legend.position = "bottom")),
+nrow = 3, ncol = 2,
+heights = c(.45,.45,.1),
+labels = c("A","B","C","D")
+)
+```
+
+- here we see the normal model is producing values too small in the minimum values (more values lower than the actual minimum value), while the log model is doing a better job (A vs. C)
+- for both normal and log models, the maximum reaction time is underestimated (B vs. D)
+
+## Summary
+
+- we saw 2 simple examples of a liner model, with two differet likelihoods (normal and log normal)
+- one key skill we learned was to examine and interpret the piror predictive distribution
+- another key skill: interpreting the posterior predictive distribution
+- these two distributions tell us how well themodel represents the realiy, both before and after observing the particular data we have
+
+- Next:
+  + addint a predictor: $y = \alpha + \beta \times x + \epsilon$
+  + logistic regression
+  + first steps in modeling repeated measures (dependent) data with hierarchical models: $y = \alpha + u_0 + \beta \times x + \epsilon$
