@@ -1359,3 +1359,189 @@ labels = c("A","B","C","D")
   + addint a predictor: $y = \alpha + \beta \times x + \epsilon$
   + logistic regression
   + first steps in modeling repeated measures (dependent) data with hierarchical models: $y = \alpha + u_0 + \beta \times x + \epsilon$
+  
+# Week 3: Regression models
+
+## Example: Multiple object tracking
+
+- participant has to track between 0:5 objects on the screen, when there are several distractor objects on the screen as well
+- examining attentional load, and its effect on **pupil size**
+
+- our model:
+
+$$
+p\_size_n \sim Normal(\alpha + c_load_n \cdot \beta, \sigma)
+$$
+
+- $\beta$ = slope (determined by cognitive load)
+- $\alpha$ = intercept, which will be the average effect of pupil size
+- every data point is assumed to be independent (in frequentist terms: iid)
+
+```{r}
+data("df_pupil_pilot")
+df_pupil_pilot$p_size %>% summary()
+```
+
+- this suggests we can use the following *regularizing* prior for $\alpha$
+
+$$
+\alpha \sim Normal(1000,500)
+$$
+
+- we are expressing with these priors that our plausible values for the Intercept will be (95\% CrI)
+
+```{r}
+round(
+  qnorm(c(.025,.975), 
+        mean = 1000, 
+        sd = 500),
+  2)
+```
+
+- for $\sigma$, we use an uninformative prior
+
+$$
+\sigma \sim Normal_+(0,1000)
+$$
+
+```{r}
+round(extraDistr::qtnorm(
+  c(.025, .975),
+  mean = 0,
+  sd = 1000,
+  a = 0 # truncate at 0
+),
+1)
+```
+
+- $\beta$ is 'most important' (effect of attentional load on pupil size)
+
+$$
+\beta \sim Normal(0,100)
+$$
+
+- not truncated, meaning we are agnostic in terms of whether the effect will be positive or negative
+
+```{r}
+round(
+  qnorm(c(.025,.975),
+      mean = 0, sd = 100),
+  1)
+```
+
+- these are what we're saying we think the plausible values of $\beta$ will be
+
+- let's now work with the 'real' data, and centre the predictor
+  + do this by subtracting the mean from each value
+  - negative centered values represent values lower than the mean
+- we see this data is repeated measure, because we have multiple data points from each participant for each load (2 times load = 0, for example)
+
+```{r}
+data("df_pupil")
+df_pupil <- df_pupil %>%
+  mutate(c_load = load - mean(load)); head(df_pupil,7)
+```
+
+- fit the model
+
+```{r}
+# only sigma is truncated at 0 in our priors, and it is also truncated at 0 by default in stan
+# therefore, we don't need to set any ub/lb
+fit_pupil <- brm(p_size ~ c_load,
+                 data = df_pupil,
+                 family = gaussian(),
+                 prior = c(
+                   prior(normal(1000,500), class = Intercept),
+                   prior(normal(0,1000), class = sigma),
+                   prior(normal(0,100), class = b, coef = c_load)
+                 ))
+```
+
+
+## Example: Multiple Object Tracking II
+
+- now let's see what we got out of this model
+- use the `plot()` function to check the convergence
+  + we also get the slope for c_load (written as `b_c_load`)
+
+```{r}
+plot(fit_pupil)
+```
+
+- we see:
+  + intercept is around 700 (the average pupil size, because we centered the predictor)
+  + c_load: range of variability in pupil size change with an increase of 1 unit of load
+    + effect size is mainly between 10-60 
+- we see sigma is in the positive range
+
+- we also see the chains are on top of each other (and so are sampling from the same distribution)
+
+```{r, eval = F}
+# a function they wrote, will be shared with us
+short_summary(fit_pupil)
+```
+
+### Posterior predictive check
+
+- we can now get more future simulated data sets
+- having fit the model, we can generate new data repeatedly using our posterior distributions of our parameters
+
+```{r}
+for (l in 0:4) { # for the cognitive load levels 0:4
+  df_sub_pupil <- filter(df_pupil, load == l) # filter out other loads
+  d <- pp_check(fit_pupil, # run pp_check
+    type = "dens_overlay",
+    ndraws = 100,
+    newdata = df_sub_pupil # using this new data with filtering
+  ) +
+    # and plot it
+    geom_point(data = df_sub_pupil, aes(x = p_size, y = 0.0001)) +
+    ggtitle(paste("load: ", l)) +
+    coord_cartesian(xlim = c(400, 1000))
+  print(d)
+    # and store object as p_l
+  name <- paste0("dens_",l)
+  assign(name, d)
+}
+```
+
+```{r}
+ggpubr::ggarrange(
+  dens_0 + theme(legend.position = "none"),
+  dens_1 + theme(legend.position = "none"),
+  dens_2 + theme(legend.position = "none"),
+  dens_3 + theme(legend.position = "none"),
+  dens_4 + theme(legend.position = "none"),
+  cowplot::get_legend(dens_4),
+  nrow=3 , ncol = 2)
+```
+
+```{r}
+  for (l in 0:4) {
+  df_sub_pupil <- filter(df_pupil, load == l)
+  p <- pp_check(fit_pupil,
+    type = "stat",
+    ndraws = 1000,
+    newdata = df_sub_pupil,
+    stat = "mean"
+  ) +
+    geom_point(data = df_sub_pupil, aes(x = p_size, y = 0.1)) +
+    ggtitle(paste("load: ", l)) +
+    coord_cartesian(xlim = c(400, 1000))
+  print(p)
+  # and store object as p_l
+  name <- paste0("p_",l)
+  assign(name, p)
+  }
+```
+
+```{r}
+ggpubr::ggarrange(
+  p_0 + theme(legend.position = "none"),
+  p_1 + theme(legend.position = "none"),
+  p_2 + theme(legend.position = "none"),
+  p_3 + theme(legend.position = "none"),
+  p_4 + theme(legend.position = "none"),
+  cowplot::get_legend(p_4),
+  nrow=3 , ncol = 2)
+```

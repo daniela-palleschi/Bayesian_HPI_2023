@@ -1751,3 +1751,278 @@ pp_check(fit_press, ndraws = 100, type = "stat", stat = "mean",
   + looked at the effect of priors by means of prior predictive distributions and sensitivity analysis
   + looked at the fit of the posterior by inspecting the posterior predictive distribution (which givees us some idea about the descriptive adequacy of the model)
   + learned how to fit a Bayesian model with a log-normal likelihood, and how to compare the predictive accuracy of different models
+  
+# Chapter 4 - Bayesian regression models
+
+- regression tells us how our *dependent variable* (response/outcome variable; e.g., pupil size, response times, accuracy, etc.) is affected by one or many *independent variables* (predictors/explanatory variables)
+- predictors can be categrocial (e.g., male or female), ordinal (first, second, third, etc.), or continuous (e.g., age)
+- this chapter: simple regression with different likelihood functions
+
+## A first linear regression: Does attentional load affect pupil size?
+
+- pupil size is mostly related to the amount of light that reaches the retina or the distance to a perceived object
+  + it is *also* systematically influenced by **cognitive processing**: increased cognitive load $\rightarrow$ increase in pupil size
+  
+- we'll use data from one subject's pupil size of a control experiment in Wahn et al. (2016), *averaged by trial* (`df_pupil` data in the `bcogsci` package)
+  + the subject covertly tracks between 0-5 objects among several randomly moving on a screen (multiple object tracking (MOT) task)
+  + our goal: investigate how the number of moving objects being tracked (i.e., attentional load) affects pupil size
+  
+### Likelihood and priors
+
+- we'll model pupil size as normally distributed (we're not expecting skew, and have no further information available about the distribution of pupil sizes)
+  + we know this isn't exactly right, given the units used here in which pipil sizes cannot equal 0 or be negative
+- for simplicity's sake, let's assume a linear relationship between load and pupil size
+
+Our assumptions:
+1. There is some average pupil size, $\alpha$
+2. the increase of attentional load has a linear relationship with pupil size, $\beta$
+3. There is some noise in this process (variability around true pupil size), represented by the scale $\sigma$
+
+- the generative probability density function will be:
+
+$$
+p\_size_n \sim \mathit{Normal}(\alpha + c\_load_n \cdot \beta,\sigma)
+$$
+- this translates to the `brms` formula:
+
+```{r, eval = F}
+p_size ~ 1 + c_load
+```
+
+- where `1` represents the intercept, $\alpha$, which doens't depend on the predictor
+- `c_load` is the predictor that is multiplied by $\beta$
+  + the prefix `c_`will be used to indicate a predictor is *centred* (the mean of all the values is subtracted from each value)
+  + with load centred, the intercept represents the pupil size at the *average load* in the expeirment (because at the average load, the centered load is zero, yielding $\alpha + 0 \cdot\beta$) 
+  + if the load had *not* been centered, then the intercept would represent the pupil size when there is no load
+
+- we could fit a frequentist model simply with `lm(p_size ~ 1 + c_load, data)`, but for a Bayesian model we have to specify priors for each of the parameters
+
+- to set plausible priors, some research into info on pupil sizes needs to first be done
+  + e.g., we may know pupil diameters range between 2 to 4mm in bright light to 4-8mm in the dark, this experiment was run with the Eyelink-II eyetracker which uses arbitrary units
+  + we need to first know something about measures of pupil sizes (assuming this is our first experiment with such data)
+  + luckily we have some *pilot data*, which will tell us something about the order of magnitude of our dependent variable
+      + importantly: the pilot data presented no attentional load for the first 100 ms, measured every 10 ms
+
+```{r}
+data("df_pupil_pilot")
+df_pupil_pilot$p_size %>% summary()
+```
+
+- we can now set a regularizing prior for $\alpha$:
+  + center the prior around 1000 to be in the right order of magnitude
+  + since we don't know much yet about pupil size variation by load, we should include a rather wide prior by defining it as a normal distribution and setting its standard deviation as 500
+  
+$$
+\alpha \sim Normal(1000, 500)
+$$
+- our predictor load is centered, so with the prior for $\alpha$ we are saying that we suspect that the average pupil size for the average load int he experiment will be in a 95\% CrI of approximately $1000 \pm (2\times500) = [0, 2000]$
+  + or, more precisely:
+
+```{r}
+round(
+  qnorm(c(.025,.975), mean = 1000, sd = 500),
+  0)
+```
+
+- since the measurements of the pilot data are strongly correlated because they were taken 10 milliseconds apart; so they won't give realistic estimate of variation in pupil size
+  + so, set up an uninformative prior for $\sigma$ that encodes this lack of precise information: $\sigma$ is surely longer than zero, and has to be in the order of magnitude of the pupil size with no load
+  
+$$
+\sigma \sim Normal_+(0, 1000)
+$$
+- so we are saying that we expect that the standard deviation of the pupil sizes should be in the following 95\% CrI:
+
+```{r}
+qtnorm(c(.025,.975), 
+       mean = 0, 
+       sd = 1000, 
+       a = 0 # truncate at 0
+       )
+```
+
+- reminder: the mean of $Normal_+$ does not coincide with its location indicated with $\mu$
+  + neither does the standard deviation coincide with the scale $\sigma$
+  
+```{r}
+samples <- rtnorm(20000, 
+                  mean = 0, # mean of Normal_+ distri
+                  sd = 1000,  # sd of Normal_+ distri
+                  a = 0) # truncate at 0
+c(mean = mean(samples), # sample mean
+  sd = sd(samples)) # sample sd
+```
+  
+- still need the prior for $\beta$, i.e., the change in pupil size produced by attentional load
+  + since these changes in pupil size usually aren't perceptible in day-to-day life, they should be much smaller than the pupil size (which we assume ahs a mean of 1000 units), so:
+  
+$$
+\beta \sim Normal(0,100)
+$$
+
+- so we are saying we don't really know if the attentional load will increase or decrease the pupil size (it's centered at 0)
+  + but we do know one unit of load will potentially change the pupil size in a way that is consistent with the following 95% CrI:
+  
+```{r}
+round(qnorm(c(.025,.975),
+      mean = 0,
+      sd = 100),0)
+```
+  
+- so, we don't expect changes in size that increase or decrease the pupil size more than 200 units for one unit increase in load
+
+- these priors are relatively uninformative, if we had more previous knowledge about pupil size variation we could have more principled priors
+
+:::{.callout-tip}
+## Sidebar: Truncated distributions
+
+- looks intense
+:::
+
+### The `brms` model
+
+- before fittings the `brms` model, load the data and center the predictor
+
+```{r}
+data("df_pupil")
+(df_pupil <- df_pupil %>%
+    mutate(c_load = load - mean(load)) # centre
+  )
+```
+
+- fit the brms model:
+
+```{r}
+fit_pupil <- brm(p_size ~ 1 + c_load,
+                 data = df_pupil,
+                 family = gaussian(),
+                 prior = c(
+                   prior(normal(1000,500), class = Intercept),
+                   prior(normal(0,1000), class = sigma),
+                   prior(normal(0,100), 
+                         class = b, coef = c_load) # predictor prior
+                 )
+                 )
+```
+
+- if we want to set the same prior for different predictors, we can omit `coef = ...`
+- the priors are normal distribution for the intercept ($\alpha$) and the slope ($\beta$), and a truncated normal distribution for the scale parameter $\sigma$, which coincides with the standard deviation (because the likelihood is a normal distribution)
+
+- inspect the output of the model:
+
+```{r}
+plot(fit_pupil)
+```
+
+```{r}
+fit_pupil
+```
+
+:::{.callout-tip}
+## Sidebar: Intercepts in `brms`
+
+- when setting up a prior for the intercept in `brms`, we actually set a prior for an intercept assuming that all predictors are centered
+  + if predictors are *not8 cnetered, there is a mismatch between the interpretation of the intercept as returned in the output and the interpretation of the intercept with respect to its prior specification
+:::
+
+### How to communicate the results
+
+- our research question was "What is the effect of attentional load on the subject's pupil size?"
+  + we need to examine what happens with the posterior distribution of $\beta$, which is printed out as `c_load` in the model summary, and is `r round(mean(as_draws_df(fit_pupil)$b_c_load),2)`
+
+```{r}
+# beta of c_load
+round(
+  as_draws_df(fit_pupil)$b_c_load %>% 
+  mean(),
+  2)
+
+# 95% CrI
+c(quantile(as_draws_df(fit_pupil)$b_c_load,
+           probs = c(.025, .975)))
+```
+
+- the model tells us that as attentional load increases, pupil size increases
+  + to determine how likely it is that the pupil size increased rather than decreased, we can examine the proportion of samples above zero
+  
+```{r}
+# proportion of cases where the effect occured and was positive
+mean(as_draws_df(fit_pupil)$b_c_load > 0)
+```
+  
+- this high probability does not mean the effect of load is non-zero
+  + rather, it's much more likely that the effect is positive rather than negative
+  + to claim the effect is likely to be non-zero, we'd have to compare the model with an alternative model in which the model assumes that the efefct of load is 0 (more on this in chapter 14)
+
+### Descriptive adequacy
+
+- our model converged and we obtained a posterior distribution
+- however there is no guarantee that our model is good enough to represent our data! So let's run some posterior predictive checks
+  + it can be useful to customise the PPC to visualise the fit of the model
+  
+```{r}
+for (l in 0:4) { # for the cognitive load levels 0:4
+  df_sub_pupil <- filter(df_pupil, load == l) # filter out other loads
+  d <- pp_check(fit_pupil, # run pp_check
+    type = "dens_overlay",
+    ndraws = 100,
+    newdata = df_sub_pupil # using this new data with filtering
+  ) +
+    # and plot it
+    geom_point(data = df_sub_pupil, aes(x = p_size, y = 0.0001)) +
+    ggtitle(paste("load: ", l)) +
+    coord_cartesian(xlim = c(400, 1000))
+  # print(p)
+  name <- paste0("dens_",l)
+  assign(name, d)
+}
+```
+
+```{r}
+ggpubr::ggarrange(
+  dens_0 + theme(legend.position = "none"),
+  dens_1 + theme(legend.position = "none"),
+  dens_2 + theme(legend.position = "none"),
+  dens_3 + theme(legend.position = "none"),
+  dens_4 + theme(legend.position = "none"),
+  cowplot::get_legend(dens_4),
+  nrow=2, ncol = 3)
+```
+
+- we don't have enough data to make any strong claims; both the predictive distributions and our data are pretty wide spread, and it's hard to tell if the distribution of the observations could've been generated by our model
+  + for now let's say it doesn't look so bad
+
+- let's look instead at the distribution of summary statistics
+
+```{r}
+  for (l in 0:4) {
+  df_sub_pupil <- filter(df_pupil, load == l)
+  p <- pp_check(fit_pupil,
+    type = "stat",
+    ndraws = 1000,
+    newdata = df_sub_pupil,
+    stat = "mean"
+  ) +
+    geom_point(data = df_sub_pupil, aes(x = p_size, y = 0.1)) +
+    ggtitle(paste("load: ", l)) +
+    coord_cartesian(xlim = c(400, 1000))
+  # print(p)
+  # and store object as p_l
+  name <- paste0("p_",l)
+  assign(name, p)
+  }
+```
+
+```{r}
+ggpubr::ggarrange(
+  p_0 + theme(legend.position = "none"),
+  p_1 + theme(legend.position = "none"),
+  p_2 + theme(legend.position = "none"),
+  p_3 + theme(legend.position = "none"),
+  p_4 + theme(legend.position = "none"),
+  cowplot::get_legend(p_4),
+  nrow=2, ncol = 3)
+```
+
+- the observed means for no load and for load = 1 are falling in the tails of the distribution of means
+  + the data may be indicating the relevant difference is simply between no load and some load: the likelihood (the dark line) doesn't move much between load = 1:4 (is about 700-740), but is much lower for load=0 (about 550)
+  + but given the uncertainty in the posterior predictive distributions and that in the observed means are contained somewhere int he predicted distributions, we could just be overinterpreting noise

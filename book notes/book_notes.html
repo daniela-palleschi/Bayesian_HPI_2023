@@ -211,6 +211,16 @@ div.csl-indent {
   <li><a href="#list-of-most-important-commands" id="toc-list-of-most-important-commands" class="nav-link" data-scroll-target="#list-of-most-important-commands"><span class="toc-section-number">3.7</span>  List of most important commands</a></li>
   <li><a href="#summary-1" id="toc-summary-1" class="nav-link" data-scroll-target="#summary-1"><span class="toc-section-number">3.8</span>  Summary</a></li>
   </ul></li>
+  <li><a href="#chapter-4---bayesian-regression-models" id="toc-chapter-4---bayesian-regression-models" class="nav-link" data-scroll-target="#chapter-4---bayesian-regression-models"><span class="toc-section-number">4</span>  Chapter 4 - Bayesian regression models</a>
+  <ul class="collapse">
+  <li><a href="#a-first-linear-regression-does-attentional-load-affect-pupil-size" id="toc-a-first-linear-regression-does-attentional-load-affect-pupil-size" class="nav-link" data-scroll-target="#a-first-linear-regression-does-attentional-load-affect-pupil-size"><span class="toc-section-number">4.1</span>  A first linear regression: Does attentional load affect pupil size?</a>
+  <ul class="collapse">
+  <li><a href="#likelihood-and-priors" id="toc-likelihood-and-priors" class="nav-link" data-scroll-target="#likelihood-and-priors"><span class="toc-section-number">4.1.1</span>  Likelihood and priors</a></li>
+  <li><a href="#the-brms-model" id="toc-the-brms-model" class="nav-link" data-scroll-target="#the-brms-model"><span class="toc-section-number">4.1.2</span>  The <code>brms</code> model</a></li>
+  <li><a href="#how-to-communicate-the-results" id="toc-how-to-communicate-the-results" class="nav-link" data-scroll-target="#how-to-communicate-the-results"><span class="toc-section-number">4.1.3</span>  How to communicate the results</a></li>
+  <li><a href="#descriptive-adequacy" id="toc-descriptive-adequacy" class="nav-link" data-scroll-target="#descriptive-adequacy"><span class="toc-section-number">4.1.4</span>  Descriptive adequacy</a></li>
+  </ul></li>
+  </ul></li>
   </ul>
 </nav>
 </div>
@@ -2724,6 +2734,437 @@ make: *** [foo.o] Error 1</code></pre>
 <li>learned how to fit a Bayesian model with a log-normal likelihood, and how to compare the predictive accuracy of different models</li>
 </ul></li>
 </ul>
+</section>
+</section>
+<section id="chapter-4---bayesian-regression-models" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Chapter 4 - Bayesian regression models</h1>
+<ul>
+<li>regression tells us how our <em>dependent variable</em> (response/outcome variable; e.g., pupil size, response times, accuracy, etc.) is affected by one or many <em>independent variables</em> (predictors/explanatory variables)</li>
+<li>predictors can be categrocial (e.g., male or female), ordinal (first, second, third, etc.), or continuous (e.g., age)</li>
+<li>this chapter: simple regression with different likelihood functions</li>
+</ul>
+<section id="a-first-linear-regression-does-attentional-load-affect-pupil-size" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="a-first-linear-regression-does-attentional-load-affect-pupil-size"><span class="header-section-number">4.1</span> A first linear regression: Does attentional load affect pupil size?</h2>
+<ul>
+<li>pupil size is mostly related to the amount of light that reaches the retina or the distance to a perceived object
+<ul>
+<li>it is <em>also</em> systematically influenced by <strong>cognitive processing</strong>: increased cognitive load <span class="math inline">\rightarrow</span> increase in pupil size</li>
+</ul></li>
+<li>we’ll use data from one subject’s pupil size of a control experiment in Wahn et al.&nbsp;(2016), <em>averaged by trial</em> (<code>df_pupil</code> data in the <code>bcogsci</code> package)
+<ul>
+<li>the subject covertly tracks between 0-5 objects among several randomly moving on a screen (multiple object tracking (MOT) task)</li>
+<li>our goal: investigate how the number of moving objects being tracked (i.e., attentional load) affects pupil size</li>
+</ul></li>
+</ul>
+<section id="likelihood-and-priors" class="level3" data-number="4.1.1">
+<h3 data-number="4.1.1" class="anchored" data-anchor-id="likelihood-and-priors"><span class="header-section-number">4.1.1</span> Likelihood and priors</h3>
+<ul>
+<li>we’ll model pupil size as normally distributed (we’re not expecting skew, and have no further information available about the distribution of pupil sizes)
+<ul>
+<li>we know this isn’t exactly right, given the units used here in which pipil sizes cannot equal 0 or be negative</li>
+</ul></li>
+<li>for simplicity’s sake, let’s assume a linear relationship between load and pupil size</li>
+</ul>
+<p>Our assumptions: 1. There is some average pupil size, <span class="math inline">\alpha</span> 2. the increase of attentional load has a linear relationship with pupil size, <span class="math inline">\beta</span> 3. There is some noise in this process (variability around true pupil size), represented by the scale <span class="math inline">\sigma</span></p>
+<ul>
+<li>the generative probability density function will be:</li>
+</ul>
+<p><span class="math display">
+p\_size_n \sim \mathit{Normal}(\alpha + c\_load_n \cdot \beta,\sigma)
+</span> - this translates to the <code>brms</code> formula:</p>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-80_73ac32eca3469403705c6dfcf8a6e0c3">
+<div class="sourceCode cell-code" id="cb175"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb175-1"><a href="#cb175-1" aria-hidden="true" tabindex="-1"></a>p_size <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> c_load</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<ul>
+<li><p>where <code>1</code> represents the intercept, <span class="math inline">\alpha</span>, which doens’t depend on the predictor</p></li>
+<li><p><code>c_load</code> is the predictor that is multiplied by <span class="math inline">\beta</span></p>
+<ul>
+<li>the prefix <code>c_</code>will be used to indicate a predictor is <em>centred</em> (the mean of all the values is subtracted from each value)</li>
+<li>with load centred, the intercept represents the pupil size at the <em>average load</em> in the expeirment (because at the average load, the centered load is zero, yielding <span class="math inline">\alpha + 0 \cdot\beta</span>)</li>
+<li>if the load had <em>not</em> been centered, then the intercept would represent the pupil size when there is no load</li>
+</ul></li>
+<li><p>we could fit a frequentist model simply with <code>lm(p_size ~ 1 + c_load, data)</code>, but for a Bayesian model we have to specify priors for each of the parameters</p></li>
+<li><p>to set plausible priors, some research into info on pupil sizes needs to first be done</p>
+<ul>
+<li>e.g., we may know pupil diameters range between 2 to 4mm in bright light to 4-8mm in the dark, this experiment was run with the Eyelink-II eyetracker which uses arbitrary units</li>
+<li>we need to first know something about measures of pupil sizes (assuming this is our first experiment with such data)</li>
+<li>luckily we have some <em>pilot data</em>, which will tell us something about the order of magnitude of our dependent variable
+<ul>
+<li>importantly: the pilot data presented no attentional load for the first 100 ms, measured every 10 ms</li>
+</ul></li>
+</ul></li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-81_4211c8571cd6e830a7c2f426f29756d9">
+<div class="sourceCode cell-code" id="cb176"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb176-1"><a href="#cb176-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"df_pupil_pilot"</span>)</span>
+<span id="cb176-2"><a href="#cb176-2" aria-hidden="true" tabindex="-1"></a>df_pupil_pilot<span class="sc">$</span>p_size <span class="sc">%&gt;%</span> <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  851.5   856.0   862.0   860.8   866.5   868.0 </code></pre>
+</div>
+</div>
+<ul>
+<li>we can now set a regularizing prior for <span class="math inline">\alpha</span>:
+<ul>
+<li>center the prior around 1000 to be in the right order of magnitude</li>
+<li>since we don’t know much yet about pupil size variation by load, we should include a rather wide prior by defining it as a normal distribution and setting its standard deviation as 500</li>
+</ul></li>
+</ul>
+<p><span class="math display">
+\alpha \sim Normal(1000, 500)
+</span> - our predictor load is centered, so with the prior for <span class="math inline">\alpha</span> we are saying that we suspect that the average pupil size for the average load int he experiment will be in a 95% CrI of approximately <span class="math inline">1000 \pm (2\times500) = [0, 2000]</span> + or, more precisely:</p>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-82_1f5a0888f6c3b542847ce2bd153dbf62">
+<div class="sourceCode cell-code" id="cb178"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb178-1"><a href="#cb178-1" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(</span>
+<span id="cb178-2"><a href="#cb178-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">qnorm</span>(<span class="fu">c</span>(.<span class="dv">025</span>,.<span class="dv">975</span>), <span class="at">mean =</span> <span class="dv">1000</span>, <span class="at">sd =</span> <span class="dv">500</span>),</span>
+<span id="cb178-3"><a href="#cb178-3" aria-hidden="true" tabindex="-1"></a>  <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1]   20 1980</code></pre>
+</div>
+</div>
+<ul>
+<li>since the measurements of the pilot data are strongly correlated because they were taken 10 milliseconds apart; so they won’t give realistic estimate of variation in pupil size
+<ul>
+<li>so, set up an uninformative prior for <span class="math inline">\sigma</span> that encodes this lack of precise information: <span class="math inline">\sigma</span> is surely longer than zero, and has to be in the order of magnitude of the pupil size with no load</li>
+</ul></li>
+</ul>
+<p><span class="math display">
+\sigma \sim Normal_+(0, 1000)
+</span> - so we are saying that we expect that the standard deviation of the pupil sizes should be in the following 95% CrI:</p>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-83_7d19750896c24aa9294bd9d11cd34fd2">
+<div class="sourceCode cell-code" id="cb180"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb180-1"><a href="#cb180-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qtnorm</span>(<span class="fu">c</span>(.<span class="dv">025</span>,.<span class="dv">975</span>), </span>
+<span id="cb180-2"><a href="#cb180-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">mean =</span> <span class="dv">0</span>, </span>
+<span id="cb180-3"><a href="#cb180-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">sd =</span> <span class="dv">1000</span>, </span>
+<span id="cb180-4"><a href="#cb180-4" aria-hidden="true" tabindex="-1"></a>       <span class="at">a =</span> <span class="dv">0</span> <span class="co"># truncate at 0</span></span>
+<span id="cb180-5"><a href="#cb180-5" aria-hidden="true" tabindex="-1"></a>       )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1]   31.33798 2241.40273</code></pre>
+</div>
+</div>
+<ul>
+<li>reminder: the mean of <span class="math inline">Normal_+</span> does not coincide with its location indicated with <span class="math inline">\mu</span>
+<ul>
+<li>neither does the standard deviation coincide with the scale <span class="math inline">\sigma</span></li>
+</ul></li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-84_c1c4e6964f5fc850991cee95ac84c79d">
+<div class="sourceCode cell-code" id="cb182"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb182-1"><a href="#cb182-1" aria-hidden="true" tabindex="-1"></a>samples <span class="ot">&lt;-</span> <span class="fu">rtnorm</span>(<span class="dv">20000</span>, </span>
+<span id="cb182-2"><a href="#cb182-2" aria-hidden="true" tabindex="-1"></a>                  <span class="at">mean =</span> <span class="dv">0</span>, <span class="co"># mean of Normal_+ distri</span></span>
+<span id="cb182-3"><a href="#cb182-3" aria-hidden="true" tabindex="-1"></a>                  <span class="at">sd =</span> <span class="dv">1000</span>,  <span class="co"># sd of Normal_+ distri</span></span>
+<span id="cb182-4"><a href="#cb182-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">a =</span> <span class="dv">0</span>) <span class="co"># truncate at 0</span></span>
+<span id="cb182-5"><a href="#cb182-5" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">mean =</span> <span class="fu">mean</span>(samples), <span class="co"># sample mean</span></span>
+<span id="cb182-6"><a href="#cb182-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">sd =</span> <span class="fu">sd</span>(samples)) <span class="co"># sample sd</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    mean       sd 
+804.1260 605.8548 </code></pre>
+</div>
+</div>
+<ul>
+<li>still need the prior for <span class="math inline">\beta</span>, i.e., the change in pupil size produced by attentional load
+<ul>
+<li>since these changes in pupil size usually aren’t perceptible in day-to-day life, they should be much smaller than the pupil size (which we assume ahs a mean of 1000 units), so:</li>
+</ul></li>
+</ul>
+<p><span class="math display">
+\beta \sim Normal(0,100)
+</span></p>
+<ul>
+<li>so we are saying we don’t really know if the attentional load will increase or decrease the pupil size (it’s centered at 0)
+<ul>
+<li>but we do know one unit of load will potentially change the pupil size in a way that is consistent with the following 95% CrI:</li>
+</ul></li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-85_e1912a677f5a3f4b4d7bded48a3e8981">
+<div class="sourceCode cell-code" id="cb184"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb184-1"><a href="#cb184-1" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">qnorm</span>(<span class="fu">c</span>(.<span class="dv">025</span>,.<span class="dv">975</span>),</span>
+<span id="cb184-2"><a href="#cb184-2" aria-hidden="true" tabindex="-1"></a>      <span class="at">mean =</span> <span class="dv">0</span>,</span>
+<span id="cb184-3"><a href="#cb184-3" aria-hidden="true" tabindex="-1"></a>      <span class="at">sd =</span> <span class="dv">100</span>),<span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -196  196</code></pre>
+</div>
+</div>
+<ul>
+<li><p>so, we don’t expect changes in size that increase or decrease the pupil size more than 200 units for one unit increase in load</p></li>
+<li><p>these priors are relatively uninformative, if we had more previous knowledge about pupil size variation we could have more principled priors</p></li>
+</ul>
+<div class="callout-tip callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Sidebar: Truncated distributions
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>looks intense</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="the-brms-model" class="level3" data-number="4.1.2">
+<h3 data-number="4.1.2" class="anchored" data-anchor-id="the-brms-model"><span class="header-section-number">4.1.2</span> The <code>brms</code> model</h3>
+<ul>
+<li>before fittings the <code>brms</code> model, load the data and center the predictor</li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-86_0e604c0a83b55c3795787a3e4a6be96b">
+<div class="sourceCode cell-code" id="cb186"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb186-1"><a href="#cb186-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"df_pupil"</span>)</span>
+<span id="cb186-2"><a href="#cb186-2" aria-hidden="true" tabindex="-1"></a>(df_pupil <span class="ot">&lt;-</span> df_pupil <span class="sc">%&gt;%</span></span>
+<span id="cb186-3"><a href="#cb186-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">c_load =</span> load <span class="sc">-</span> <span class="fu">mean</span>(load)) <span class="co"># centre</span></span>
+<span id="cb186-4"><a href="#cb186-4" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 41 × 5
+    subj trial  load p_size c_load
+   &lt;int&gt; &lt;int&gt; &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+ 1   701     1     2  1021. -0.439
+ 2   701     2     1   951. -1.44 
+ 3   701     3     5  1064.  2.56 
+ 4   701     4     4   913.  1.56 
+ 5   701     5     0   603. -2.44 
+ 6   701     6     3   826.  0.561
+ 7   701     7     0   464. -2.44 
+ 8   701     8     4   758.  1.56 
+ 9   701     9     2   733. -0.439
+10   701    10     3   591.  0.561
+# … with 31 more rows</code></pre>
+</div>
+</div>
+<ul>
+<li>fit the brms model:</li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-87_a6bf61ca184a96468e8313f48d277a4d">
+<div class="sourceCode cell-code" id="cb188"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb188-1"><a href="#cb188-1" aria-hidden="true" tabindex="-1"></a>fit_pupil <span class="ot">&lt;-</span> <span class="fu">brm</span>(p_size <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> c_load,</span>
+<span id="cb188-2"><a href="#cb188-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> df_pupil,</span>
+<span id="cb188-3"><a href="#cb188-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">family =</span> <span class="fu">gaussian</span>(),</span>
+<span id="cb188-4"><a href="#cb188-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">prior =</span> <span class="fu">c</span>(</span>
+<span id="cb188-5"><a href="#cb188-5" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">1000</span>,<span class="dv">500</span>), <span class="at">class =</span> Intercept),</span>
+<span id="cb188-6"><a href="#cb188-6" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">0</span>,<span class="dv">1000</span>), <span class="at">class =</span> sigma),</span>
+<span id="cb188-7"><a href="#cb188-7" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">0</span>,<span class="dv">100</span>), </span>
+<span id="cb188-8"><a href="#cb188-8" aria-hidden="true" tabindex="-1"></a>                         <span class="at">class =</span> b, <span class="at">coef =</span> c_load) <span class="co"># predictor prior</span></span>
+<span id="cb188-9"><a href="#cb188-9" aria-hidden="true" tabindex="-1"></a>                 )</span>
+<span id="cb188-10"><a href="#cb188-10" aria-hidden="true" tabindex="-1"></a>                 )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Running /Library/Frameworks/R.framework/Resources/bin/R CMD SHLIB foo.c
+clang -mmacosx-version-min=10.13 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG   -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/Rcpp/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/unsupported"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/BH/include" -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/src/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppParallel/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DUSE_STANC3 -DSTRICT_R_HEADERS  -DBOOST_PHOENIX_NO_VARIADIC_EXPRESSION  -DBOOST_NO_AUTO_PTR  -include '/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/usr/local/include   -fPIC  -Wall -g -O2  -c foo.c -o foo.o
+In file included from &lt;built-in&gt;:1:
+In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/fun/Eigen.hpp:22:
+In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:88:
+/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:1: error: unknown type name 'namespace'
+namespace Eigen {
+^
+/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:16: error: expected ';' after top level declarator
+namespace Eigen {
+               ^
+               ;
+In file included from &lt;built-in&gt;:1:
+In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/fun/Eigen.hpp:22:
+In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:96:10: fatal error: 'complex' file not found
+#include &lt;complex&gt;
+         ^~~~~~~~~
+3 errors generated.
+make: *** [foo.o] Error 1</code></pre>
+</div>
+</div>
+<ul>
+<li><p>if we want to set the same prior for different predictors, we can omit <code>coef = ...</code></p></li>
+<li><p>the priors are normal distribution for the intercept (<span class="math inline">\alpha</span>) and the slope (<span class="math inline">\beta</span>), and a truncated normal distribution for the scale parameter <span class="math inline">\sigma</span>, which coincides with the standard deviation (because the likelihood is a normal distribution)</p></li>
+<li><p>inspect the output of the model:</p></li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-88_f66d0ca5d0673b520bc67549d32f4e16">
+<div class="sourceCode cell-code" id="cb190"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb190-1"><a href="#cb190-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(fit_pupil)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-88-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-89_f68c998ba0911f75bf19660760cde335">
+<div class="sourceCode cell-code" id="cb191"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb191-1"><a href="#cb191-1" aria-hidden="true" tabindex="-1"></a>fit_pupil</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> Family: gaussian 
+  Links: mu = identity; sigma = identity 
+Formula: p_size ~ 1 + c_load 
+   Data: df_pupil (Number of observations: 41) 
+  Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+         total post-warmup draws = 4000
+
+Population-Level Effects: 
+          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+Intercept   701.61     19.95   663.00   740.63 1.00     3505     2511
+c_load       33.49     12.02     9.98    57.47 1.00     4313     2887
+
+Family Specific Parameters: 
+      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sigma   128.32     15.67   102.44   165.09 1.00     3723     2641
+
+Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+</div>
+</div>
+<div class="callout-tip callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Sidebar: Intercepts in <code>brms</code>
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>when setting up a prior for the intercept in <code>brms</code>, we actually set a prior for an intercept assuming that all predictors are centered
+<ul>
+<li>if predictors are *not8 cnetered, there is a mismatch between the interpretation of the intercept as returned in the output and the interpretation of the intercept with respect to its prior specification</li>
+</ul></li>
+</ul>
+</div>
+</div>
+</section>
+<section id="how-to-communicate-the-results" class="level3" data-number="4.1.3">
+<h3 data-number="4.1.3" class="anchored" data-anchor-id="how-to-communicate-the-results"><span class="header-section-number">4.1.3</span> How to communicate the results</h3>
+<ul>
+<li>our research question was “What is the effect of attentional load on the subject’s pupil size?”
+<ul>
+<li>we need to examine what happens with the posterior distribution of <span class="math inline">\beta</span>, which is printed out as <code>c_load</code> in the model summary, and is 33.49</li>
+</ul></li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-90_426c2259c28aabaf6e885061f3a8cd2b">
+<div class="sourceCode cell-code" id="cb193"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb193-1"><a href="#cb193-1" aria-hidden="true" tabindex="-1"></a><span class="co"># beta of c_load</span></span>
+<span id="cb193-2"><a href="#cb193-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(</span>
+<span id="cb193-3"><a href="#cb193-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_draws_df</span>(fit_pupil)<span class="sc">$</span>b_c_load <span class="sc">%&gt;%</span> </span>
+<span id="cb193-4"><a href="#cb193-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>(),</span>
+<span id="cb193-5"><a href="#cb193-5" aria-hidden="true" tabindex="-1"></a>  <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 33.49</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb195"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb195-1"><a href="#cb195-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 95% CrI</span></span>
+<span id="cb195-2"><a href="#cb195-2" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="fu">quantile</span>(<span class="fu">as_draws_df</span>(fit_pupil)<span class="sc">$</span>b_c_load,</span>
+<span id="cb195-3"><a href="#cb195-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">probs =</span> <span class="fu">c</span>(.<span class="dv">025</span>, .<span class="dv">975</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     2.5%     97.5% 
+ 9.981363 57.467231 </code></pre>
+</div>
+</div>
+<ul>
+<li>the model tells us that as attentional load increases, pupil size increases
+<ul>
+<li>to determine how likely it is that the pupil size increased rather than decreased, we can examine the proportion of samples above zero</li>
+</ul></li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-91_9d591f7f1e3928e62ef12c513960fc83">
+<div class="sourceCode cell-code" id="cb197"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb197-1"><a href="#cb197-1" aria-hidden="true" tabindex="-1"></a><span class="co"># proportion of cases where the effect occured and was positive</span></span>
+<span id="cb197-2"><a href="#cb197-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(<span class="fu">as_draws_df</span>(fit_pupil)<span class="sc">$</span>b_c_load <span class="sc">&gt;</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.997</code></pre>
+</div>
+</div>
+<ul>
+<li>this high probability does not mean the effect of load is non-zero
+<ul>
+<li>rather, it’s much more likely that the effect is positive rather than negative</li>
+<li>to claim the effect is likely to be non-zero, we’d have to compare the model with an alternative model in which the model assumes that the efefct of load is 0 (more on this in chapter 14)</li>
+</ul></li>
+</ul>
+</section>
+<section id="descriptive-adequacy" class="level3" data-number="4.1.4">
+<h3 data-number="4.1.4" class="anchored" data-anchor-id="descriptive-adequacy"><span class="header-section-number">4.1.4</span> Descriptive adequacy</h3>
+<ul>
+<li>our model converged and we obtained a posterior distribution</li>
+<li>however there is no guarantee that our model is good enough to represent our data! So let’s run some posterior predictive checks
+<ul>
+<li>it can be useful to customise the PPC to visualise the fit of the model</li>
+</ul></li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-92_10cde3d616c3c518cdd5600252287d25">
+<div class="sourceCode cell-code" id="cb199"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb199-1"><a href="#cb199-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (l <span class="cf">in</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">4</span>) { <span class="co"># for the cognitive load levels 0:4</span></span>
+<span id="cb199-2"><a href="#cb199-2" aria-hidden="true" tabindex="-1"></a>  df_sub_pupil <span class="ot">&lt;-</span> <span class="fu">filter</span>(df_pupil, load <span class="sc">==</span> l) <span class="co"># filter out other loads</span></span>
+<span id="cb199-3"><a href="#cb199-3" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">pp_check</span>(fit_pupil, <span class="co"># run pp_check</span></span>
+<span id="cb199-4"><a href="#cb199-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">type =</span> <span class="st">"dens_overlay"</span>,</span>
+<span id="cb199-5"><a href="#cb199-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">ndraws =</span> <span class="dv">100</span>,</span>
+<span id="cb199-6"><a href="#cb199-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">newdata =</span> df_sub_pupil <span class="co"># using this new data with filtering</span></span>
+<span id="cb199-7"><a href="#cb199-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb199-8"><a href="#cb199-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># and plot it</span></span>
+<span id="cb199-9"><a href="#cb199-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">data =</span> df_sub_pupil, <span class="fu">aes</span>(<span class="at">x =</span> p_size, <span class="at">y =</span> <span class="fl">0.0001</span>)) <span class="sc">+</span></span>
+<span id="cb199-10"><a href="#cb199-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(<span class="fu">paste</span>(<span class="st">"load: "</span>, l)) <span class="sc">+</span></span>
+<span id="cb199-11"><a href="#cb199-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">400</span>, <span class="dv">1000</span>))</span>
+<span id="cb199-12"><a href="#cb199-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(p)</span>
+<span id="cb199-13"><a href="#cb199-13" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-92-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-92-2.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-92-3.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-92-4.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-92-5.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<ul>
+<li>we don’t have enough data to make any strong claims; both the predictive distributions and our data are pretty wide spread, and it’s hard to tell if the distribution of the observations could’ve been generated by our model
+<ul>
+<li>for now let’s say it doesn’t look so bad</li>
+</ul></li>
+<li>let’s look instead at the distribution of summary statistics</li>
+</ul>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-93_3b74fdef59fbe231a13670719ff9b494">
+<div class="sourceCode cell-code" id="cb200"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb200-1"><a href="#cb200-1" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (l <span class="cf">in</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">4</span>) {</span>
+<span id="cb200-2"><a href="#cb200-2" aria-hidden="true" tabindex="-1"></a>  df_sub_pupil <span class="ot">&lt;-</span> <span class="fu">filter</span>(df_pupil, load <span class="sc">==</span> l)</span>
+<span id="cb200-3"><a href="#cb200-3" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">pp_check</span>(fit_pupil,</span>
+<span id="cb200-4"><a href="#cb200-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">type =</span> <span class="st">"stat"</span>,</span>
+<span id="cb200-5"><a href="#cb200-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">ndraws =</span> <span class="dv">1000</span>,</span>
+<span id="cb200-6"><a href="#cb200-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">newdata =</span> df_sub_pupil,</span>
+<span id="cb200-7"><a href="#cb200-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">stat =</span> <span class="st">"mean"</span></span>
+<span id="cb200-8"><a href="#cb200-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb200-9"><a href="#cb200-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">data =</span> df_sub_pupil, <span class="fu">aes</span>(<span class="at">x =</span> p_size, <span class="at">y =</span> <span class="fl">0.1</span>)) <span class="sc">+</span></span>
+<span id="cb200-10"><a href="#cb200-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(<span class="fu">paste</span>(<span class="st">"load: "</span>, l)) <span class="sc">+</span></span>
+<span id="cb200-11"><a href="#cb200-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">400</span>, <span class="dv">1000</span>))</span>
+<span id="cb200-12"><a href="#cb200-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(p)</span>
+<span id="cb200-13"><a href="#cb200-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># and store object as p_l</span></span>
+<span id="cb200-14"><a href="#cb200-14" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"p_"</span>,l)</span>
+<span id="cb200-15"><a href="#cb200-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">assign</span>(name, p)</span>
+<span id="cb200-16"><a href="#cb200-16" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-93-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-93-2.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-93-3.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-93-4.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-93-5.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell" data-hash="book_notes_cache/html/unnamed-chunk-94_3c5613acb06b03dc83fc9928faa825ef">
+<div class="sourceCode cell-code" id="cb201"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb201-1"><a href="#cb201-1" aria-hidden="true" tabindex="-1"></a>ggpubr<span class="sc">::</span><span class="fu">ggarrange</span>(</span>
+<span id="cb201-2"><a href="#cb201-2" aria-hidden="true" tabindex="-1"></a>  p_0 <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>),</span>
+<span id="cb201-3"><a href="#cb201-3" aria-hidden="true" tabindex="-1"></a>  p_1 <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>),</span>
+<span id="cb201-4"><a href="#cb201-4" aria-hidden="true" tabindex="-1"></a>  p_2 <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>),</span>
+<span id="cb201-5"><a href="#cb201-5" aria-hidden="true" tabindex="-1"></a>  p_3 <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>),</span>
+<span id="cb201-6"><a href="#cb201-6" aria-hidden="true" tabindex="-1"></a>  p_4 <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>),</span>
+<span id="cb201-7"><a href="#cb201-7" aria-hidden="true" tabindex="-1"></a>  cowplot<span class="sc">::</span><span class="fu">get_legend</span>(p_4),</span>
+<span id="cb201-8"><a href="#cb201-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">nrow=</span><span class="dv">3</span> , <span class="at">ncol =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="book_notes_files/figure-html/unnamed-chunk-94-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<ul>
+<li>the observed means for no load and for load = 1 are falling in the tails of the distribution of means
+<ul>
+<li>the data may be indicating the relevant difference is simply between no load and some load: the likelihood (the dark line) doesn’t move much between load = 1:4 (is about 700-740), but is much lower for load=0 (about 550)</li>
+<li>but given the uncertainty in the posterior predictive distributions and that in the observed means are contained somewhere int he predicted distributions, we could just be overinterpreting noise</li>
+</ul></li>
+</ul>
+</section>
 </section>
 </section>
 
