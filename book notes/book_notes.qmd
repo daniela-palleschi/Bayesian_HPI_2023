@@ -1543,8 +1543,11 @@ round(c(lower = exp(6 - 2 * 1.5),
   + we need to specify that the familiy is `lognormal()`
 
 ```{r}
+# create place-holder data (for cases where we don't yet have any data but want to check out the prior predictive distribution)
 df_spacebar_ref <- df_spacebar %>%
   mutate(rt = rep(1, n()))
+
+# now run a model that runs only prior samples
 fit_prior_press_ln <- brm(rt ~ 1,
   data = df_spacebar_ref,
   family = lognormal(),
@@ -1552,7 +1555,7 @@ fit_prior_press_ln <- brm(rt ~ 1,
     prior(normal(6, 1.5), class = Intercept),
     prior(normal(0, 1), class = sigma)
   ),
-  sample_prior = "only",
+  sample_prior = "only", # this is how we tell the model to only produce priors!
   control = list(adapt_delta = .9)
 )
 ```
@@ -1560,7 +1563,8 @@ fit_prior_press_ln <- brm(rt ~ 1,
 - to avoid the warnings, we need to increase the `adapt_delta` parameter's default value from 0.8 to 0.95 to simulate the data
 
 - plot the prior predictive distribution of means with the following code
-  + to get a prior predictive distribution, we want to ignroe the data, so set `prefix = "ppd"`
+  + to get a prior predictive distribution, we want to ignore the data, so set `prefix = "ppd"`
+  + IMPORTANTLY, this should be run on a model that had `sample_prior = "only"`, and therefore ignored the data; otherwise we'd just be plotting the posterior
 
 ```{r}
 pp_check(fit_prior_press_ln, type = "stat", stat = "mean", prefix = "ppd") +

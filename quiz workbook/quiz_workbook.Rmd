@@ -28,7 +28,8 @@ knitr::opts_chunk$set(echo = T,
                       eval = T,
                       error = F,
                       warning = F,
-                      message = F)
+                      message = F,
+                      cache = T)
 
 # suppress scientific notation
 options(scipen=999)
@@ -451,3 +452,335 @@ If the posterior is a Beta distribution then its parameters are: $Beta(a + 1, b 
 $a* = a +1$
 
 $b* = b + \sum^{n}_{i=1^{x_{i}-1}}$
+
+# Week 3
+
+## Question 1 (1 Pt.) {-}
+
+Fit the model `fit_press` with just a few iterations, say 50 iterations (set warmup to the default of 25, and use four chains). Does the model converge (yes/no)?
+
+```{r, error = T, warning = T}
+# load data from bcogsci package
+data("df_spacebar")
+
+# run fit_press with 50 iterations
+fit_press <- brm(rt ~ 1,
+  data = df_spacebar,
+  family = gaussian(),
+  prior = c(
+    prior(uniform(0, 60000), class = Intercept, lb = 0, ub = 60000),
+    prior(uniform(0, 2000), class = sigma, lb = 0, ub = 2000)
+  ),
+  chains = 4,
+  iter = 50,
+  warmup = 25
+  ## uncomment for prior predictive:
+  ## sample_prior = "only",
+  ## uncomment when dealing with divergent transitions
+  ## control = list(adapt_delta = .9)
+); fit_press
+```
+
+```{r}
+plot(fit_press)
+```
+
+```{r}
+# density plots
+pp_check(fit_press, # model
+         ndraws = 25, # n of predicted data sets
+         type = "dens_overlay" # plot type
+         ) + theme_bw() +
+  labs(title = "Posterior predictive check")
+```
+
+**My answer:** no, it did not converge:
+
+- indicated in the warning messages (e.g., *There were 20 divergent transitions after warmup*)
+- indicated by Rhat, which is greater than 1.05 (= 2.37)
+- There's no fat fuzzy caterpillar
+- Also, the posterior predictive check does not show 'descriptive adequacy' (which is necessary but not *sufficient* evidence in favour of a model--though this isn't about convergence, but model fit)
+
+## Question 2 (1 Pt.) {-}
+
+Let's revisit the button-pressing example with different priors. Can you come up with very informative priors that influence the posterior in a noticeable way (use normal distributions for priors, not uniform priors)?
+
+```{r, error=T, warning=T}
+# run fit_press with informative priors
+fit_press_inf <- brm(rt ~ 1,
+  data = df_spacebar,
+  family = gaussian(),
+  prior = c(
+    prior(normal(1500, 10), class = Intercept),
+    prior(normal(50, 2), class = sigma)
+  ),
+  chains = 4,
+  iter = 2000,
+  warmup = 1000
+  ## uncomment for prior predictive:
+  ## sample_prior = "only",
+  ## uncomment when dealing with divergent transitions
+  ## control = list(adapt_delta = .9)
+); fit_press_inf
+
+# run fit_press with informative priors
+prior_fit_press_inf <- brm(rt ~ 1,
+  data = df_spacebar,
+  family = gaussian(),
+  prior = c(
+    prior(normal(1500, 10), class = Intercept),
+    prior(normal(50, 2), class = sigma)
+  ),
+  sample_prior = "only",
+  chains = 4,
+  iter = 2000,
+  warmup = 1000
+  ## uncomment for prior predictive:
+  ## sample_prior = "only",
+  ## uncomment when dealing with divergent transitions
+  ## control = list(adapt_delta = .9)
+); prior_fit_press_inf
+```
+
+```{r}
+plot(fit_press_inf)
+
+# density plots
+pp_check(fit_press_inf, # model
+         ndraws = 100, # n of predicted data sets
+         type = "dens_overlay" # plot type
+         ) + theme_bw() +
+  labs(title = "Posterior predictive check")
+```
+
+Generate and plot prior predictive distributions based on this prior and plot them. (See Plot A)
+
+Generate posterior predictive distributions based on this prior and plot them. (See Plot B)
+
+```{r}
+ggpubr::ggarrange(
+## Plot prior predictive distribution of statistical summaries:
+pp_check(prior_fit_press_inf, ndraws = 100, type = "stat", stat = "min",
+         prefix = "ppd") +
+  labs(title = "Prior predictive distribution"),
+## Plot prior predictive distribution of statistical summaries:
+pp_check(prior_fit_press_inf, ndraws = 100, type = "stat", stat = "max",
+         prefix = "ppd") +
+  labs(title = "Prior predictive distribution"),
+## Plot prior predictive distribution of statistical summaries:
+pp_check(prior_fit_press_inf, ndraws = 100, type = "stat", stat = "mean",
+         prefix = "ppd") +
+  labs(title = "Prior predictive distribution"),
+## Plot posterior predictive distribution of statistical summaries:
+pp_check(fit_press_inf, ndraws = 100, type = "stat", stat = "min") +
+  labs(title = "Posterior predictive distribution"),
+## Plot posterior predictive distribution of statistical summaries:
+pp_check(fit_press_inf, ndraws = 100, type = "stat", stat = "max") +
+  labs(title = "Posterior predictive distribution"),
+## Plot posterior predictive distribution of statistical summaries:
+pp_check(fit_press_inf, ndraws = 100, type = "stat", stat = "mean") +
+  labs(title = "Posterior predictive distribution"),
+nrow = 2, ncol=3, labels = c("A","", "", "B")
+)
+```
+
+**My comments:** model converged (fat hairy caterpillar), but the model is *not* a good fit (posterior predictive check density plots). This was our goal: a model overly influenced by the priors, which were much higher and tighter than is realistic for reaction time data.
+
+## Question 3 (1 Pt.) {-}
+
+Let's revisit the `fit_press_ln` model. Change the prior of $\sigma$ so that it is a log-normal distribution with location ($\mu$) of −2 and scale ($\sigma$) of .5. What does such a prior imply about your belief regarding button-pressing times in milliseconds?
+
+**My comment:** it implies that we believe the mean will be $\frac{\mu + \sigma^2}{2}$ = $\frac{-2 + 0.5^2}{2}$:
+
+```{r}
+mu <- -2
+sigma = .5
+
+# the mean is
+exp((mu + sigma^2)/2)
+```
+
+```{r}
+# and the median is
+exp(mu)
+```
+
+
+```{r, error=T, warning=T}
+fit_press_ln <- brm(rt ~ 1,
+  data = df_spacebar,
+  family = lognormal(),
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(-2, .5), class = sigma)
+  )
+); fit_press_ln
+
+prior_fit_press_ln <- brm(rt ~ 1,
+  data = df_spacebar,
+  family = lognormal(),
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(-2, .5), class = sigma)
+  ),
+  sample_prior = "only",
+); prior_fit_press_ln
+```
+
+Is it a good prior?
+
+```{r, cache = F}
+estimate_ms <- exp(as_draws_df(fit_press_ln)$b_Intercept)
+
+c(mean = mean(estimate_ms), sd = sd(estimate_ms), quantile(estimate_ms, probs = c(.025, .975)))
+```
+
+
+**My comment:** yes it's pretty good I'd say (similar peaks and distribution of majority of observations)
+
+```{r}
+plot(fit_press_ln)
+
+ggpubr::ggarrange(
+# prior density plot
+pp_check(fit_press_ln, # model
+         ndraws = 100, # n of predicted data sets
+         prefix = "ppd",
+         type = "dens_overlay" # plot type
+         ) + 
+  xlim(NA,400) +
+  theme_bw() +
+  labs(title = "Prior predictive check"),
+
+# posterior density plots
+pp_check(fit_press_ln, # model
+         ndraws = 100, # n of predicted data sets
+         type = "dens_overlay" # plot type
+         ) + theme_bw() +
+  labs(title = "Posterior predictive check"),
+nrow = 2,
+labels = c("A","B")
+)
+```
+
+Generate and plot prior predictive distributions. (I'm also plotting posteriors)
+
+```{r}
+ggpubr::ggarrange(
+## Plot prior predictive distribution of statistical summaries:
+pp_check(prior_fit_press_ln, ndraws = 100, type = "stat", stat = "mean",
+         prefix = "ppd") +
+  labs(title = "Prior predictive distribution"),
+
+## Plot posterior predictive distribution of statistical summaries:
+pp_check(fit_press_ln, ndraws = 100, type = "stat", stat = "mean") +
+  labs(title = "Posterior predictive distribution"),
+nrow = 2, labels = c("A","B")
+)
+```
+
+```{r}
+p1 <- pp_check(prior_fit_press_ln, type = "stat", stat = "mean", prefix = "ppd") +
+  coord_cartesian(xlim = c(0.001, 300000)) +
+  scale_x_continuous("Response times [ms]",
+    trans = "log",
+    breaks = c(0.001, 1, 100, 1000, 10000, 100000),
+    labels = c(
+      "0.001", "1", "100", "1000", "10000",
+      "100000"
+    )
+  ) +
+  ggtitle("Prior predictive distribution of means")
+p2 <- pp_check(fit_press_ln, type = "stat", stat = "min", prefix = "ppd") +
+  coord_cartesian(xlim = c(0.001, 300000)) +
+  scale_x_continuous("Response times [ms]",
+    trans = "log",
+    breaks = c(0.001, 1, 100, 1000, 10000, 100000),
+    labels = c(
+      "0.001", "1", "100", "1000", "10000",
+      "100000"
+    )
+  ) +
+  ggtitle("Prior predictive distribution of minimum values")
+p3 <- pp_check(fit_press_ln, type = "stat", stat = "max", prefix = "ppd") +
+  coord_cartesian(xlim = c(0.001, 300000)) +
+  scale_x_continuous("Response times [ms]",
+    trans = "log",
+    breaks = c(0.001, 1, 100, 1000, 10000, 100000),
+    labels = c(
+      "0.001", "1", "10", "1000", "10000",
+      "100000"
+    )
+  ) +
+  ggtitle("Prior predictive distribution of maximum values")
+plot_grid(p1, p2, p3, nrow = 3, ncol =1)
+```
+
+Do the new estimates change compared to earlier models when you fit the model?
+
+**My answer:** yes they do, they're much tighter (narrower) and don't have the same peaks
+
+Fromt the *explanation*:
+
+```{r}
+# new mu and sigma
+quantile(rlnorm(100000, -2, .5), c(.025, .975))
+```
+
+```{r}
+# previous mu and sigma
+quantile(rlnorm(100000, 0,1), c(.025, .975))
+```
+
+## Question 4 (1 Pt.) {-}
+
+Let's revisit the `fit_press_ln` model. For the log-normal model, what is the mean (rather than median) time that takes to press the space bar, what is the standard deviation of the response times in milliseconds?
+
+```{r, error=T, warning=T}
+fit_press_ln_orig <- brm(rt ~ 1,
+  data = df_spacebar,
+  family = lognormal(),
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(0, 1), class = sigma)
+  )
+)
+```
+
+The mean, sd, and 95\% CrI (just for fun) in milliseconds are:
+
+```{r, cache = F}
+estimate_ms <- exp(as_draws_df(fit_press_ln_orig)$b_Intercept)
+
+c(mean_b = mean(estimate_ms), sd_b = sd(estimate_ms), quantile(estimate_ms, probs = c(.025, .975)))
+
+sd_ms <- exp(as_draws_df(fit_press_ln_orig)$sigma)
+
+c(mean_sd = mean(sd_ms), sd_sd = sd(sd_ms), quantile(sd_ms, probs = c(.025, .975)))
+```
+
+```{r}
+mu_ln <- mean(as_draws_df(fit_press_ln_orig)$b_Intercept)
+sig_ln <- mean(as_draws_df(fit_press_ln_orig)$sigma) 
+exp(mu_ln + sig_ln^2/2)
+```
+
+mean: $exp(\frac{\mu + \sigma^2}{2})$ = $exp(\frac{-2 + 0.5^2}{2})$
+
+```{r}
+mu <- mean(as_draws_df(fit_press_ln_orig)$b_Intercept)
+sigma <- sd(as_draws_df(fit_press_ln_orig)$b_Intercept)
+
+# the mean is
+exp(mu + sigma^2/2)
+```
+
+sd: $exp(\frac{\mu + \sigma^2}{2}) \times \sqrt{exp(\sigma^2)-1}$ 
+
+```{r}
+mu_sig <- mean(as_draws_df(fit_press_ln_orig)$sigma)
+sigma_sig <- sd(as_draws_df(fit_press_ln_orig)$sigma)
+
+exp(mu_sig + sigma_sig^2/2) * sqrt(exp(sigma_sig^2)-1)
+```
+
