@@ -1,11 +1,15 @@
 ---
 title: "HPI Bayesian Course"
-output: 
+output:
+  html_document:
+    toc: yes
+    toc_depth: '2'
+    df_print: paged
   html_notebook:
-    number_sections: true
-    toc: true
+    number_sections: yes
+    toc: yes
     toc_depth: 2
-    toc_float: true
+    toc_float: yes
 ---
 
 # How to follow
@@ -53,19 +57,53 @@ git push
 
 ## Other commands
 
+- check working directory
+
 ```{r, eval = F, echo = T}
 # print working directory; should be to your project folder
 pwd
+```
+
+- change working directory
+
+```{r, eval = F, echo = T}
 # change directory, in case not your project folder
 cd
+```
+
+- list all files in working directory
+
+```{r, eval = F, echo = T}
 # list all files in WD
 ls
-# list all files including ignord ones
+```
+
+- list all files in working directory, including ignored ones
+
+```{r, eval = F, echo = T}
+# list all files including ignored ones
 ls -a
+```
+
+- check git status (what's been staged, what not)
+
+```{r, eval = F, echo = T}
 # check status
 status
+```
+
+- add files to .gitignore (so they won't be monitored)
+
+```{r, eval = F, echo = T}
 # add file/folder to gitignore (so git will ignore it)
 echo Slides/ >> .gitignore
+```
+
+- check remote repo URL
+
+```{r, eval = F, echo = T}
+# check what your remote repo URL is
+git remote -v
 ```
 
 # Keeping up changes
