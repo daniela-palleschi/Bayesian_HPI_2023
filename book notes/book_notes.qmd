@@ -2026,3 +2026,276 @@ ggpubr::ggarrange(
 - the observed means for no load and for load = 1 are falling in the tails of the distribution of means
   + the data may be indicating the relevant difference is simply between no load and some load: the likelihood (the dark line) doesn't move much between load = 1:4 (is about 700-740), but is much lower for load=0 (about 550)
   + but given the uncertainty in the posterior predictive distributions and that in the observed means are contained somewhere int he predicted distributions, we could just be overinterpreting noise
+  
+## Log-normal model: Does trial affect finger tapping times?
+
+- let's revisit the small example from Ch. 3 with the spacebar-pressing times
+  + suppose we want ot know whether the subject tended to speed up (a practice effect) or slow down (a fatigue/boredome effect)
+  + let's load the data, and centere the column `trial`
+
+```{r}
+df_spacebar <- df_spacebar %>%
+  mutate(c_trial = trial - mean(trial))
+```
+
+### Likelihood and priors for the log-normal model
+
+- if we assume a log-normal distribution of tapping times, the likelihood becomes:
+
+$$
+t_n \sim LogNormal(\alpha + c_trial_n \cdot \beta,\sigma)
+$$
+
+- where $n = 1,...,N$ and $t$ is the dependent variable (finger tapping times in milliseconds)
+  + $N$ is the total number of data points
+- same priors as before for $\alpha$ (which is equivalent to $\mu$ in the previous model) and for $\sigma$
+
+$$
+\begin{align}
+\alpha &\sim Normal(6,1.5)\\
+\sigma &\sim Normal(0,1)
+\end{align}
+$$
+
+- what about a prior for $\beta$?
+  + effects are *multiplicative* rather than additive when assuming a log-normal likelihood, meaning we need to take into account $\alpha$ in order to interpret \$beta$
+- let's generate some prior predictive distributions to try to understand how our priors interact
+  + start with the following prior centred on zero, a prior agnostic regarding the direction of the effect, which allows for a slowdown ($\beta$ > 0) and a speedup ($\beta$ < 0)
+  
+$$
+\beta \sim Normal(0,1)  
+$$
+
+- our first attempt at a prior predictive distribution:
+
+```{r}
+# Ignore the dependent variable,
+# use a vector of ones a placeholder.
+df_spacebar_ref <- df_spacebar %>%
+  mutate(t = rep(1, n()))
+fit_prior_press_trial <- brm(t ~ 1 + c_trial,
+  data = df_spacebar_ref,
+  family = lognormal(),
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(0, 1), class = sigma),
+    prior(normal(0, 1), class = b, coef = c_trial)
+  ),
+  sample_prior = "only", # PRIOR PRED DISTR
+  control = list(adapt_delta = .9)
+)
+```
+
+- to understand the type of data we are *assuming* a priori with the prior of parameter $\beta$, let's plot the median difference between the finger tapping times at adjacent trials
+  + as the prior of $\beta$ gets wider, larger differences are observed between adjacent trials
+- the objective of the prior predictive check is to calibrate the prior of $\beta$ to obtain a plausible range of differences
+  + let's plot the distribution of medians because they are less affected by teh variance in the prior predicted distribution than the distribution of mean differences; there'll be more spread for means (the mean of log-normal distributed values depends on both the location, $\mu$, and scale, $\sigma$, of the distribution)
+
+- first, define a function that calculates the difference between adjacent trials, then apply this to the results in `pp_check`
+  + as expected, the median effect is centered on zero (as is our prior), but we see that the distribution of possible medians for the effect is too widely spread out and includes extreme values
+  
+```{r}
+# calculate median
+median_diff <- function(x) {
+  median(x - lag(x), na.rm = TRUE)
+}
+# plot pp_check for priors
+pp_check(fit_prior_press_trial,
+         type = "stat",
+         stat = "median_diff",
+  # show only prior predictive distributions       
+         prefix = "ppd",
+  # each bin has a width of 500ms       
+         binwidth = 500) +
+  # cut the top of the plot to improve its scale
+  coord_cartesian(ylim = c(0, 50))
+```
+
+- try again with the prior $\beta \sim Normal(0,0.01)$
+  + this prior predictive distribution still looks quite vague, but is at least in the right order of magnitude
+
+```{r}
+# Ignore the dependent variable,
+# use a vector of ones a placeholder.
+df_spacebar_ref <- df_spacebar %>%
+  mutate(t = rep(1, n()))
+fit_prior_press_trial <- brm(t ~ 1 + c_trial,
+  data = df_spacebar_ref,
+  family = lognormal(),
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(0, 1), class = sigma),
+    prior(normal(0, .01), class = b, coef = c_trial) # change to 0,.01
+  ),
+  sample_prior = "only", # PRIOR PRED DISTR
+  control = list(adapt_delta = .9)
+)
+
+# calculate median
+median_diff <- function(x) {
+  median(x - lag(x), na.rm = TRUE)
+}
+# plot pp_check for priors
+pp_check(fit_prior_press_trial,
+         type = "stat",
+         stat = "median_diff",
+  # show only prior predictive distributions       
+         prefix = "ppd",
+  # each bin has a width of 500ms       
+         binwidth = 500) +
+  # cut the top of the plot to improve its scale
+  coord_cartesian(ylim = c(0, 50))
+```
+
+- prior selection is a lot of work, but is usually only done the first time using a certain experimental design
+  + and likelihood estimates from frequentist models can be useful too
+  + when in doubt, a sensitivity analysis is helpful to determine whether the posterior distribution depends too strongly on our prior
+  
+### The `brms` model
+
+- let's stick to the priors we've set, and fit the model of the effect of trial using `brms`
+  + we need to specify the family is `lognormal()`
+  
+```{r}
+fit_press_trial <- brm(rt ~ 1 + c_trial,
+  data = df_spacebar,
+  family = lognormal(),
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(0, 1), class = sigma),
+    prior(normal(0, .01), class = b, coef = c_trial)
+  )
+)
+```
+
+- we can look at the estimates from the posteriors for parameters $\alpha$, $\beta$, and $\sigma$
+  + N.B., these are on the log scale
+
+```{r}
+# print just the estimates (NB, log scale)
+posterior_summary(fit_press_trial,
+                  variable = c("b_Intercept",
+                               "b_c_trial",
+                               "sigma"))
+```
+
+- let's plot the **posterior** distributions
+
+```{r}
+plot(fit_press_trial)
+```
+
+```{r}
+# layered density plots
+pp_check(fit_press_trial, # model
+         ndraws = 100, # n of predicted data sets
+         type = "dens_overlay" # plot type
+         ) +
+  theme_bw()
+```
+
+### How toc ommunicate the results
+
+- the first step is to summarize the posteriors in a table or graphically (or both)
+  + if the research relates to the effect estimated by the model, the posterior of $\beta$ can be summarised as: $\hat\beta$ = 0.00052, 95\% = [0.0004, 0.00065].
+  
+- the effect is easier to interpret in milliseconds, so we can back-transform it from the log scale
+  + *but* we need to take into account that the scale is not linear, and that the effect between two button presses will differ depending on where we are in the experiment
+  
+- we will have a certain estimate if we consider the difference between RTs in a trial at the middle of the experiment (when centered trial number is 0) and the previous trial (when the centered trial number is minus 1)
+  
+```{r}
+alpha_samples <- as_draws_df(fit_press_trial)$b_Intercept
+beta_samples <- as_draws_df(fit_press_trial)$b_c_trial
+effect_middle_ms <- exp(alpha_samples) -
+  exp(alpha_samples - 1 * beta_samples)
+
+## ms effect in the middle of the expt
+## (mean trial vs. mean trial - 1)
+c(mean = mean(effect_middle_ms),
+  quantile(effect_middle_ms, c(0.025, 0.975)))
+```
+
+- we will obtain different estimates if we consider the difference between the second and the first trial:
+
+```{r}
+first_trial <- min(df_spacebar$c_trial) # grab number of first trial
+second_trial <- min(df_spacebar$c_trial) + 1 # and the number of the first+1 trial (2nd trial)
+effect_beginning_ms <-
+  exp(alpha_samples + second_trial * beta_samples) -
+  exp(alpha_samples + first_trial * beta_samples)
+## ms effect from first to second trial:
+c(mean = mean(effect_beginning_ms),
+  quantile(effect_beginning_ms, c(0.025, 0.975)))
+```
+
+- so far we've obtained ***median*** effects (using `exp()`)
+  + if we want ***mean*** effects we need to take $\sigma$ into account, since we need to calculate $\exp(\cdot + \sigma^2/2)$
+  + luckily we can just use the built-in function `fitted()` which calculates means
+  
+- first: define for which observations we want to obtain the fitted values *in milliseconds*
+  + we're interested in the 1st and 2nd trials, so create a new data frame with their centred versions
+
+```{r}
+newdata_1 <- data.frame(c_trial = c(first_trial, second_trial))
+```
+
+- now, use `fitted()` on the `brms object`, including the new data, and set `summary` parameter to `FALSE`
+  + first column contains the posterior samples transformed into milliseconds of the first tiral, and the 2nd column for the 2nd trial
+  
+```{r}
+beginning <- fitted(fit_press_trial,
+                 newdata = newdata_1,
+                 summary = FALSE)
+head(beginning, 3)
+```
+
+- last, calculate the difference between trials and report mean and 95\% quantiles
+
+```{r}
+# calculate *differences* (i.e., effect) between the first 2 trial means
+effect_beginning_ms <- beginning[, 2] - beginning[,1]
+c(mean = mean(effect_beginning_ms),
+  quantile(effect_beginning_ms, c(0.025, 0.975)))
+```
+
+- since $\sigma$ is much smaller than $\mu$, $\sigma$ doesn't have a large influence on the mean effects, and the mean and 95\% CrI of the mean and median effects are quite similar
+
+- we see that no matter how we calculate the trial effect there is a *slow down* (estimates are positive)
+- when reporting results, present the posterior mean and a CrI and reason about whether the obsrved estimates are consistent with the preiction from the theory being investigated
+
+- the practical relevance of the effect for the RQ can be important too
+  + e.g., we only see a barely noticeable slowdown after 100 button presses:
+  
+```{r}
+effect_100 <-
+  exp(alpha_samples + 100 * beta_samples) -
+  exp(alpha_samples)
+c(mean = mean(effect_100),
+  quantile(effect_100, c(0.025, 0.975)))
+```
+
+- we need to consider: does our uncertainty of this estimate, and the estimated mean effect, have any scientific relevance?
+  + considering previous lit, predictions from a quantitative model, other experiment domain knowledge
+  
+- sometimes we're only interested in establishing whether an effect is present or absent
+  + the magnitude and uncertainty in these instances are of secondary interest
+  + here the goal is to argue that there is evidence of a slow down
+  + in *NHST*, a likelihood ratio test is the standard way to argue for evidence of an effect
+  + in *Bayesian data analysis*, we need to carry out **Bayes factor analysis** (see chapters 14-16)
+  
+### Descriptive adequacy
+
+- let's now look at the predictions of the model
+  + we know trial effects are very small, so let's example predictions of the model for differences in RTs between 100 button presses
+- define a function, `median_diff100()`, that calculates the median difference between a trial $n$ and a trial $n + 100$
+  + we'll compare the observed median difference against the range of predicted differences based on the model and the data, rather than only the model as we did for our prior predictions
+  
+```{r}
+median_diff100 <- function(x) median(x - lag(x, 100), na.rm = TRUE)
+pp_check(fit_press_trial,
+         type = "stat",
+         stat = "median_diff100")
+```
+
+- from this, we can conclude that model predictions for differences in response times between trials are reasonable (0 is in the outer tail)
