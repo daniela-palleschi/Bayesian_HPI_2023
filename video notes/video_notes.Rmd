@@ -1,5 +1,5 @@
 ---
-title: "HPI Bayesian Course"
+title: "Video lecture notes"
 output:
   html_document:
     number_sections: yes
@@ -22,7 +22,7 @@ editor_options:
 
 # Set options {-}
 
-```{r setup, include=FALSE}
+```{r setup}
 # set global knit options
 knitr::opts_chunk$set(echo = T,
                       eval = T,
@@ -66,7 +66,7 @@ extract <- rstan::extract
 
 Or, alternatively, the exact code taken from the book (as of Feb. 12 2023):
 
-```{r, eval = F, include = F}
+```{r, eval = F}
 library(MASS)
 ## be careful to load dplyr after MASS
 library(dplyr)
@@ -117,8 +117,7 @@ extract <- rstan::extract
 - *univariate*: one variable
 - *bivariate*: 2 variables
 - *multivariate*: 2+ variables
-
-- *variance* = sd^2
+- *variance* = $sd^2$
 
 ## Week 2 {-}
 
@@ -126,6 +125,10 @@ extract <- rstan::extract
 - *P(A,B)*: probability of A and B
 - *f* = *PDF*: probability density function (continuous)
   - so *f(\$theta$|y)*: PDF of theta given a certain value of y
+  
+## Week 4 {-}
+
+- $\alpha$: intercept, i.e.,the average effect
 
 # Week 1: Introduction
 
@@ -1807,3 +1810,203 @@ ggpubr::ggarrange(
 - the histogram posterior predictive distribution is very useful for informing the variability in future studies
 
 ## Logistic regression
+
+- a special case of generalised linear model: logisitc regression
+- example experiment:
+  + participant sees a different number of words, and are prompted to give some word they were presented (e.g., the 2nd word)
+  + the set size = the number of words presented in sequence
+  + question: what is the effect of set size on recall accuracy?
+- this will have a Bernoulli distribution, because this data is binomial (correct or incorrect)
+
+```{r}
+data("df_recall") %>%
+  head()
+
+# centre set_size
+df_recall <- df_recall %>%
+  mutate(c_set_size = set_size - mean(set_size))
+```
+
+- we centred the `set_size` so that the intercept represents the grand mean
+  + so now we will have the centred set_size at 0, with set_sizes below having a negative value, and above will have a positive value
+  
+```{r}
+# print number of observations per set_size
+df_recall %>%
+  group_by(set_size) %>%
+  count()
+```
+
+- the Bernoulli distribution has only one trial, and there's some probability of success ($\theta$)
+
+$$
+correct_n \sim Beroulli(\theta_n)
+$$
+
+- where $_n$ represents a row in the data frame (i.e., observation)
+- and $\theta$ is the probability of success
+
+- we're gonna take the odds of the $\theta_n$'s and take the log of them
+
+$$
+\eta_n = g(\theta_n) = log(\frac{\theta_n}{1 - \theta_n})
+$$
+
+- we need to convert the Bernoulli values of 0 and 1 to some continuous outcome in order to run a linear regression on these values
+
+- in the figure below, note that the logit link takes as its input $\eta$ and spits out the probability ($\theta$), whereas the inverse takes as its input $\theta$ and spits out $\eta$
+
+```{r}
+x <- seq(0.001, 0.999, by = 0.001) # create vector from almost 0 to almost 1
+y <- log(x / (1 - x)) # convert this to a log-odds scale
+logistic_dat <- data.frame(theta = x, eta = y) # create df with probabilities (theta) and eta (log-odds transformation of probabilities)
+
+p1 <- qplot(logistic_dat$theta, logistic_dat$eta, geom = "line") + xlab(expression(theta)) + ylab(expression(eta)) + ggtitle("The logit link") +
+  annotate("text",
+    x = 0.3, y = 4,
+    label = expression(paste(eta, "=", g(theta))), parse = TRUE, size = 8
+  ) + theme_bw()
+
+
+p2 <- qplot(logistic_dat$eta, logistic_dat$theta, geom = "line") + xlab(expression(eta)) + ylab(expression(theta)) + ggtitle("The inverse logit link (logistic)") + 
+  annotate("text",
+  x = -3.5, y = 0.80,
+  label = expression(paste(theta, "=", g^-1, (eta))), parse = TRUE, size = 8
+) + theme_bw()
+
+ggpubr::ggarrange(p1, p2, ncol = 2, labels = c("A", "B"))
+```
+
+### Priors for logistic regression
+
+- we don't have error terms in our model at the moment, we can worry about that later
+- once we have figured out the $\alpha$ and $\beta$, we can compute the probabilities for any value of $\eta_n$
+  + the model is fit on the log-odds scale, but we can always convert them back to the probability scale
+  
+- `qlogis(p)`: gives logit
+- `plogis(x)`: gives inverse logit
+
+- if we try priors such as $\alpha \sim Normal(0,4)$, we'd see higher probabilities near probabilties of 0 and 1
+
+```{r}
+samples_logodds <- tibble(alpha = rnorm(100000, 0, 4))
+samples_prob <- tibble(p = plogis(rnorm(100000, 0, 4)))
+
+ggpubr::ggarrange(
+  ggplot(samples_logodds, aes(alpha)) +
+    geom_density() +
+    labs(title = "Prior in log-odds (0,4)") +
+    theme_bw(),
+  ggplot(samples_prob, aes(p)) +
+    geom_density() +
+    labs(title = "Prior in probability (0,4)") +
+    theme_bw(),
+  nrow = 1,  ncol = 2,
+  labels = c("A","B")
+)
+```
+
+- what about a more constrained prior: $\alpha \sim Normal(0,1.5)$
+  + looks better
+
+```{r}
+samples_logodds <- tibble(alpha = rnorm(100000, 0, 1.5))
+samples_prob <- tibble(p = plogis(rnorm(100000, 0, 1.5)))
+
+ggpubr::ggarrange(
+  ggplot(samples_logodds, aes(alpha)) +
+    geom_density() +
+    labs(title = "Prior in log-odds (0,1.5)") +
+    theme_bw(),
+  ggplot(samples_prob, aes(p)) +
+    geom_density() +
+    labs(title = "Prior in probability (0,1.5)") +
+    theme_bw(),
+  nrow = 1,  ncol = 2,
+  labels = c("A","B")
+)
+```
+
+### Running the model: logistic regression
+
+- remember, we aren't commited to just one set of priors
+  + we can try a variety of priors (sensitivity analysis)
+
+```{r}
+fit_recall <- brm(correct ~ 1 + c_set_size,
+                  data = df_recall,
+                  family = bernoulli(link = logit),
+                  prior = c(
+                    prior(normal(0,1.5), class = Intercept),
+                    prior(normal(0,.1), class = b, coef= c_set_size)
+                    ))
+```
+
+- we now have the Bernoulli distribution iwth a logit-link function
+
+```{r}
+plot(fit_recall)
+```
+
+- `b_Intercept` is giving the distribution of grand averages
+- `b_c_set_size` are giving chagne in accuracies (log odds) with an increase of one level of set size
+
+- and check out the estimates:
+
+```{r}
+posterior_summary(fit_recall,
+                  variable = c("b_Intercept", "b_c_set_size"))
+```
+
+- but let's change the unit of measurement back to probabilities
+
+```{r}
+alpha_samples <- as_draws_df(fit_recall)$b_Intercept # sample of intercepts
+av_accuracy <- plogis(alpha_samples)
+round(
+  c(mean = mean(av_accuracy), quantile(av_accuracy, c(0.025, 0.975))),
+  3)
+
+
+beta_samples <- as_draws_df(fit_recall)$b_c_set_size
+beta_mean <- round(mean(beta_samples),5)
+beta_low <- round(quantile(beta_samples, prob = .025),5)
+beta_high <- round(quantile(beta_samples, prob = .975),5)
+```
+
+- we see accuracy is on average 87\%, with a 95\% CrI in the range of 79-93\%
+
+- what is the change in accuracy for a change in set size by 1 unit?
+
+```{r}
+beta_samples <- as_draws_df(fit_recall)$b_c_set_size # slopes for centred set_size
+
+# effect at CENTRED set_size = 0
+effect_middle <- plogis(alpha_samples) -
+  plogis(alpha_samples - beta_samples)
+
+# summary stats
+round(
+  c(mean = mean(effect_middle),
+  quantile(effect_middle, c(0.025, 0.975))),
+  3)
+```
+
+- but what about for a change from set size 2 to 4?
+
+```{r}
+four <- 4 - mean(df_recall$set_size) # 'centred' value for set size 4
+two <- 2 - mean(df_recall$set_size) # 'centred' value for set size 2
+
+# extract differeces from the samples
+effect4m2 <-
+  plogis(alpha_samples + four * beta_samples) -
+  plogis(alpha_samples + two * beta_samples)
+
+# compute stats
+round(
+  c(mean = mean(effect4m2),
+    quantile(effect4m2,
+             c(.025,.975))),
+  3)
+```
