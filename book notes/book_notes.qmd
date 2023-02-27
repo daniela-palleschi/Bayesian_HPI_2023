@@ -1788,7 +1788,7 @@ $$
 p_size ~ 1 + c_load
 ```
 
-- where `1` represents the intercept, $\alpha$, which doens't depend on the predictor
+- where `1` represents the intercept, $\alpha$, which doesn't depend on the predictor
 - `c_load` is the predictor that is multiplied by $\beta$
   + the prefix `c_`will be used to indicate a predictor is *centred* (the mean of all the values is subtracted from each value)
   + with load centred, the intercept represents the pupil size at the *average load* in the expeirment (because at the average load, the centered load is zero, yielding $\alpha + 0 \cdot\beta$) 
@@ -2420,7 +2420,7 @@ $$
 correct_n \sim Bernoulli(\theta_n)
 $$
 
-## Priorss for the logistic regression
+## Priors for the logistic regression
 
 - to decide on priors for $\alpha$ and $\beta$, we need to take into account that these parameters do not represent *probabilities* or *proportions*, but *log-odds* (the x-axis for the inverse logit link plot above)
   + as we see in that plots, the relationship between log-odds (x-axis) and probabilities (y-axis) is not linear
