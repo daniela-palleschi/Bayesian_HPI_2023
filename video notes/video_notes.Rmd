@@ -1360,7 +1360,7 @@ labels = c("A","B","C","D")
   + logistic regression
   + first steps in modeling repeated measures (dependent) data with hierarchical models: $y = \alpha + u_0 + \beta \times x + \epsilon$
   
-# Week 3: Regression models
+# Week 4: Regression models
 
 ## Example: Multiple object tracking
 
@@ -1498,14 +1498,14 @@ for (l in 0:4) { # for the cognitive load levels 0:4
     geom_point(data = df_sub_pupil, aes(x = p_size, y = 0.0001)) +
     ggtitle(paste("load: ", l)) +
     coord_cartesian(xlim = c(400, 1000))
-  print(d)
+  # print(d)
     # and store object as p_l
   name <- paste0("dens_",l)
   assign(name, d)
 }
 ```
 
-```{r}
+```{r, fig.}
 ggpubr::ggarrange(
   dens_0 + theme(legend.position = "none"),
   dens_1 + theme(legend.position = "none"),
@@ -1513,7 +1513,7 @@ ggpubr::ggarrange(
   dens_3 + theme(legend.position = "none"),
   dens_4 + theme(legend.position = "none"),
   cowplot::get_legend(dens_4),
-  nrow=3 , ncol = 2)
+  nrow=2, ncol = 3)
 ```
 
 ```{r}
@@ -1528,7 +1528,7 @@ ggpubr::ggarrange(
     geom_point(data = df_sub_pupil, aes(x = p_size, y = 0.1)) +
     ggtitle(paste("load: ", l)) +
     coord_cartesian(xlim = c(400, 1000))
-  print(p)
+  # print(p)
   # and store object as p_l
   name <- paste0("p_",l)
   assign(name, p)
@@ -1543,5 +1543,267 @@ ggpubr::ggarrange(
   p_3 + theme(legend.position = "none"),
   p_4 + theme(legend.position = "none"),
   cowplot::get_legend(p_4),
-  nrow=3 , ncol = 2)
+  nrow=2, ncol = 3)
 ```
+
+## Log-normal likelihood
+
+- let's now use the spacebar button press data again
+  + use `trial` as a predictor to see if there's a practice effect (speed up) or fatigue effet (slowdown)
+  + let's first **centre trial** so that 0 means the average trial ID
+  
+```{r}
+df_spacebar <- df_spacebar %>%
+  mutate(c_trial = trial - mean(trial))
+```
+
+- we'll assume a log-normal likelihood (it's 0 truncated, gonna have a positive skew)
+
+$$
+rt_n \sim LogNormal(\alpha + c_trial_n \cdot \beta, \sigma)
+$$
+
+- $N$: total number of (independent) data points
+- $n = 1,...,N$, and $rt$: the dependent variable (RTs in milliseconds)
+
+- because we're assuming a **log normal likelihood**, we now have to define priors on the $\alpha$, $\beta$, and $\sigma$ parameters in the *log scale*
+
+$$
+\begin{align}
+\alpha &\sim Normal(6,1.5)\\
+\sigma &\sim Normal_+(0,1)
+\end{align}
+$$
+  
+- the new parameter $\beta$ (effect of trial) needs a prior specification as well
+  + let's try a seemingly uniformative prior
+
+$$
+\beta \sim Normal(0,1)
+$$
+
+- let's look at the prior predictive checks using the `brm` function, but with:
+  + `family = lognormal()` to set log normal distribution
+  + `sample_prior = "only"` to not compute posteriors
+- this step helps us decide if our priors are reasonable or not
+
+```{r}
+# Ignore the dependent variable,
+# use a vector of ones to create dummy data
+df_spacebar_ref <- df_spacebar %>%
+  mutate(t = rep(1, n()))
+
+fit_prior_press_trial <- brm(t ~ 1 + c_trial,
+  data = df_spacebar_ref, # dummy data, cause we're looking at priors only
+  family = lognormal(), # log normal distribution
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(0, 1), class = sigma),
+    prior(normal(0, 1), class = b, coef = c_trial)
+  ),
+  sample_prior = "only", # PRIOR PRED DISTR
+  control = list(adapt_delta = .9)
+)
+```
+
+- you can also look at some statsitic from the prior predictive distributions that tell us something about the range of variability of that statistic
+  + for example, let's look at the *median difference* in RTs between sequential trials
+  + we can then look at the prior predictive distribution of the median difference in RTs from one trial to the next *based on our priors*
+
+```{r}
+# calculate median
+median_diff <- function(x) {
+  median(x - lag(x), na.rm = TRUE)
+}
+# plot pp_check for priors
+pp_check(fit_prior_press_trial,
+         type = "stat",
+         stat = "median_diff",
+  # show only prior predictive distributions       
+         prefix = "ppd",
+  # each bin has a width of 500ms       
+         binwidth = 500) +
+  # cut the top of the plot to improve its scale
+  coord_cartesian(ylim = c(0, 50))
+```
+
+- we see this is a pretty liberal prior, predicting a huge amount of variability up to the 10's of thousands (weird for a single button presss!)
+- so let's try a more informative prior for $\beta$ (effect of the predictor)
+
+$$
+\beta \sim Normal(0,0.01)
+$$
+- try it again with these more informative priors
+
+```{r}
+fit_prior_press_trial <- brm(t ~ 1 + c_trial,
+  data = df_spacebar_ref, # dummy data, cause we're looking at priors only
+  family = lognormal(), # log normal distribution
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(0, 1), class = sigma),
+    prior(normal(0, .01), class = b, coef = c_trial)
+  ),
+  sample_prior = "only", # PRIOR PRED DISTR
+  control = list(adapt_delta = .9)
+)
+
+# calculate median
+median_diff <- function(x) {
+  median(x - lag(x), na.rm = TRUE)
+}
+# plot pp_check for priors
+pp_check(fit_prior_press_trial,
+         type = "stat",
+         stat = "median_diff",
+  # show only prior predictive distributions       
+         prefix = "ppd",
+  # each bin has a width of 500ms       
+         binwidth = 500) +
+  # cut the top of the plot to improve its scale
+  coord_cartesian(ylim = c(0, 50))
+```
+
+- now we see it's much more reasonable, the distribution is much tighter around 0
+  + we know the posterior for the slope will be informed by the data (because we have a lot of data for this expeirment), so the prior doesn't need to be absolutely perfect
+  + you can always check with a sensitivity analysis that your prior is not unduly overinfluencing the posterior
+
+## Button-pressing time and the effect of trial
+
+- having specified our priors, we'll now fit the model with the data
+- if using the log-normal scale, **be sure to specify `family = lognormal()`!**
+
+```{r}
+fit_press_trial <- brm(rt ~ 1 + c_trial,
+  data = df_spacebar, # dummy data, cause we're looking at priors only
+  family = lognormal(), # log normal distribution
+  prior = c(
+    prior(normal(6, 1.5), class = Intercept),
+    prior(normal(0, 1), class = sigma),
+    prior(normal(0, .01), class = b, coef = c_trial)
+  ),
+  control = list(adapt_delta = .9)
+)
+```
+
+- let's plot the model fit
+
+```{r}
+plot(fit_press_trial)
+```
+
+```{r}
+pp_check(fit_press_trial,
+         type = "dens_overlay",
+    ndraws = 100)
+```
+
+- we see the slope parameter (`b_c_trial`) has very small values, which is difficult to interpret
+  + would be good to back-transform
+  + we can now extract the posterior distributions as vectors of data for each of the relevant paramters ($\alpha, \beta, \sigma$ parameters), which will have samples inside th model
+- to extract these distributions, we can use the function `as_draws_df(data)$parameter`
+
+```{r}
+alpha_samples <- as_draws_df(fit_press_trial)$b_Intercept
+beta_samples <- as_draws_df(fit_press_trial)$b_c_trial
+```
+
+- to find the effect ***estimate*** (in ms) from the *middle* (centred trials = 0) of the experiment to the preceeding trial (centred trials = -1):
+
+$$
+exp(\alpha) - exp(\alpha - \beta)
+$$
+
+- where:
+  + $exp(\alpha)$ is the vector of sample **intercepts**, i.e., the **mean RT** at the centered trial (trial = 0) in the middle of the experiment, and
+  + $exp(\beta)$ is the slope, i.e., the change in the average RT with every unit increase (by 1 unit, i.e., difference between 2 trials)
+  
+- and if we exponentiate both side, we get everything back on the ms scale
+
+```{r}
+beta_ms <- exp(alpha_samples) - exp(alpha_samples - beta_samples)
+```
+
+- so we're modelling `log(rt)`  in terms of $\alpha$ (intercept) and $\beta$ (slope) as predicted by the centred trial:
+
+$$
+\begin{align}
+log(rt) &= \alpha + \beta \cdot c\_trial\\
+exp(log(rt)) &= exp(\alpha + \beta \cdot c\_trial)\\
+rt &= exp(\alpha) - exp(\alpha - \beta)
+\end{align}
+$$
+
+- and we can now compute some simple statistics
+
+```{r}
+beta_msmean <- round(mean(beta_ms), 3)
+beta_mslow <- round(quantile(beta_ms, prob = .025),3)
+beta_mshigh <- round(quantile(beta_ms, prob = .975),3)
+# print
+c(beta_msmean, beta_mslow, beta_mshigh)
+```
+
+- we see there is a slow down of `r beta_msmean` milliseconds going from the -1 trial to the 0 trial
+  + what about differences between e.g., the first and second trials?
+
+```{r}
+first_trial <- min(df_spacebar$c_trial) # because the min trial is the 1st trial
+second_trial <- min(df_spacebar$c_trial) + 1 # and that # + 1 is the 2nd trial
+```
+
+- now use the same calculations as before to find the effect in ms, but now we must *multiply beta by the trial number*, because it equals the effect at the centre of the c_trials
+
+```{r}
+# create vector or sample parameters for the relevant trials
+effect_beginning_ms <-
+  exp(alpha_samples + second_trial * beta_samples) -
+  exp(alpha_samples + first_trial * beta_samples)
+
+# print stats
+round(c(mean = mean(effect_beginning_ms),
+  quantile(effect_beginning_ms, c(.025,.975))),3)
+```
+
+- but what is the slowdown after 100 trials from the middle of the experiment?
+
+```{r}
+effect_100 <-
+  exp(alpha_samples + 100 * beta_samples) - # 100 x beta to see the effect of 100 trials
+  exp(alpha_samples)
+
+# print stats
+round(c(mean = mean(effect_100),
+  quantile(effect_100, c(.025,.975))),2)
+```
+
+- now let's plot the posterior predictive distribution of *median differences8 between n and n-100th trial:
+
+```{r}
+median_diff100 <- function(x) median(x - lag(x, 100), na.rm = TRUE)
+
+ggpubr::ggarrange(
+  # as a histogram
+  pp_check(fit_press_trial,
+           type = "stat",
+           stat = "median_diff100") +
+    labs(title = "Histogram") +
+    theme(legend.position = "bottom"),
+  
+  # and as a density plot
+  pp_check(
+    fit_press_trial,
+    ndraws = 100,
+    type = "dens_overlay",
+    stat = "median_diff100") +
+    labs(title = "Density plot") +
+    theme(legend.position = "bottom"),
+  # settings
+  nrow = 1,
+  ncol = 2
+)
+```
+
+- the histogram posterior predictive distribution is very useful for informing the variability in future studies
+
+## Logistic regression
