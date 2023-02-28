@@ -2010,3 +2010,96 @@ round(
              c(.025,.975))),
   3)
 ```
+
+## Hierarchical regression
+
+- hierarchical/mixed/multilevel models
+- some sample EEG data (from Nieuwland et al 2018, collected in Edinburgh)
+  + we first centre cloze probability, our predictor
+  + prediction: negative slope, as cloze probability decreases N400 increases
+  + but now we have repeated measurements for each participant `subj`
+    + this violates the independence assumption of linear models; we solve this by including participant as a random effect
+
+```{r}
+data("df_eeg")
+(df_eeg <- df_eeg %>%
+    mutate(c_cloze = cloze - mean(cloze)))
+```
+
+```{r}
+df_eeg %>% ggplot(aes(n400)) +
+  geom_histogram(
+    binwidth = 4,
+    colour = "gray",
+    alpha = .5,
+    aes(y = after_stat(density))
+  ) +
+  stat_function(fun = dnorm, args = list(
+    mean = mean(df_eeg$n400),
+    sd = sd(df_eeg$n400)
+  )) +
+  xlab("Average voltage in microvolts for 
+       the N400 spatiotemporal window") + theme_bw()
+```
+
+- we now have the following model
+
+$$
+signal_n \sim \mathit{Normal}(\alpha + u_{subj[n],1} + c\_cloze_n \cdot (\beta+ u_{subj[n],2}),\sigma)
+$$
+
+- where:
+  + $n$ indexes the row-id int he data
+  + $subj[n]$: subject id in the $n$-th row
+  + $u_{subj[n],1}$: intercept adjustment for a given participant_n
+  + $u_{subj[n],1}$: slope $\beta$ adjustment for a given participant_n
+  
+- we assume the by-subject variance is normally distributed and centred around 0
+  + basically, we're assuming some between-subject variability 
+  
+- we now have three variance components:
+  + *between-subject* variability in **intercepts**: $\tau_{u1} \sim Normal_+(0,20)$
+  + *between-subject* variability in **slopes**: $\tau_{u2} \sim Normal_+(0,20)$
+  + within subject variability: $\sigma \sim Normal_+(0,50)$
+  
+- we can now create a vector with our priors
+
+```{r}
+prior_v <-
+  c(
+    prior(normal(0,10), class = Intercept), # intercept
+    prior(normal(0,10), class = b, coef = c_cloze), # predictor slope
+    prior(normal(0,50), class = sigma), # sd
+    prior(normal(0,20), class = sd, coef = Intercept, group = subj), # by-px intercept
+    prior(normal(0,20), class = sd, coef = c_cloze, group = subj) # by-px slope
+  )
+```
+
+```{r}
+fit_N400_v <- brm(n400 ~ c_cloze + 
+                    (c_cloze || subj),
+                  prior = prior_v,
+                  data = df_eeg)
+```
+
+- we aren't including correlation in the RES
+  + which would express whether, as the intercept adjustment e.g., increases, so does the slope adjustment/size of the effect for a given participant (a positive correlation)
+
+```{r}
+fit_N400_v
+```
+
+- we see a mean effect of cloze probability of `r round(mean(as_draws_df(fit_N400_v)$b_c_cloze),2)` 95\% CrI [`r round(quantile(as_draws_df(fit_N400_v)$b_c_cloze, c(.025,.975)),3)`]. The positive slope indicates that the larger the cloze probability, the larger the N400...counter intuitive? Should be the other way around I'd expect (negative correlation?).
+
+- in the posterior distributions, we see:
+  + the grand mean `b_Intercept`
+  + the grand mean slope (effect) `b_c_cloze`
+  + sd of the subject intercept adjustment `sd_subj_Intercept` ($\tau_{u1}$)
+  + sd of by-subject slope adjustment `sd_subj_c_cloze` ($\tau_{u2}$)
+    + is quite large, maybe even larger than the subject intercept adjustment (so maybe there's important variation in effect size between participants?)
+  + within subject variance `sigma`
+
+```{r}
+mcmc_dens(fit_N400_v, pars = variables(fit_N400_v)[1:5])
+```
+  
