@@ -2747,4 +2747,243 @@ BRRR::skrrrahh_list()
 BRRR::skrrrahh("biggie")
 ```
   
+## Hierarchical model with a normal likelihood: the N400 effect
+
+```{r}
+data("df_eeg")
+(df_eeg <- df_eeg %>%
+  mutate(c_cloze = cloze - mean(cloze)))
+```
+
+
+### Complete pooling ($M_{cp}$)
+
+#### Model assumptions
+
+#### Likelihood and priors
+
+### No pooling ($M_{np}$)
+
+#### Model assumptions
+
+#### Likelihood and priors
+
+### Varying intercepts and varying slopes model ($M_v$)
+
+#### Model assumptions
+
+#### Likelihood and priors
+
+### Correlated varying intercept varying slopes model ($M_h$)
+
+- the model $M_v$ allowed for differences in intercepts (mean voltage) and slopes (effects of cloze) across subjects
+  + but it has the implicit assumption that these varying intercepts and varying slopes are independent
+- let's fit a model with correlation between intercepts and slopes
+  + we do t his by defining a variance-covariance matrix $\sum$ between the by-subject varying intercepts and slopes, and by assuming that both adjustments (intercept and slope) come from a multivariate (in this case, bivariate) normal distribution
   
+- assumptions:
+
+  1. EEG averages for N400 spatio-temporal window are normally distributed
+  2. some aspects of the mean signal voltage and of the effect of predicatability dependo n the subject, and these two might be correlated; i.e., we assume group-level intercepts and slopes, and allow a correlation between then by-subject
+  3. there is a linear relationship between cloze and the EEG signal for the trial
+  
+- the likelihood assumes no correlation between group-level intercepts and slopes:
+
+$$
+signal_n \sim \mathit{Normal}(\alpha + u_{subj[n],1} + c\_cloze_n \cdot  (\beta + u_{subj[n],2}),\sigma)
+$$
+
+- the correlation is indicated in the priors on the adjustments for intercept $u_1$ and slopes $u_2$
+
+$$
+\begin{aligned}
+ \alpha & \sim \mathit{Normal}(0,10) \\
+ \beta  & \sim \mathit{Normal}(0,10) \\
+  \sigma  &\sim \mathit{Normal}_+(0,50)\\
+  {\begin{pmatrix}
+  u_{i,1} \\
+  u_{i,2}
+  \end{pmatrix}}
+ &\sim {\mathcal {N}}
+  \left(
+ {\begin{pmatrix} 
+  0\\
+  0
+ \end{pmatrix}}
+ ,\boldsymbol{\Sigma_u} \right)
+ \end{aligned}
+$$
+
+- to specify a prior for $\sum_u$ we need prors for the standard deviations $\tau_{u_1}$ and $\tau_{u_2}$, and for their correlation $\rho_u$
+
+- for the correlation paramter $\rho_u$, we use the LKJ prior
+  + basic idea: as its parameter, $\eta$ increases, it will favor correlations closer to zero
+  + at $\eta = 1$ the LKJ correlation distribution is *uninformative* (flat)
+  + at $\eta < 1$ it favours extreme correlations
+  + we set $eta = 2$ so that we don't favour extreme correlations, and we still represent our lack of knowledge through the wide spread of the prior between -1 and 1
+    + i.e.,  $eta = 2$ gives us a *regularizing*, relatively uninformative or mildly informative prior
+    
+```{r}
+prior_h <- c(
+  prior(normal(0, 10), class = Intercept),
+  prior(normal(0, 10), class = b, coef = c_cloze),
+  prior(normal(0, 50), class = sigma),
+  prior(normal(0, 20),
+    class = sd, coef = Intercept,
+    group = subj
+  ),
+  prior(normal(0, 20),
+    class = sd, coef = c_cloze,
+    group = subj
+  ),
+  prior(lkj(2), class = cor, group = subj)
+)
+fit_N400_h <- brm(n400 ~ c_cloze + (c_cloze | subj),
+  prior = prior_h,
+  data = df_eeg
+)
+```
+
+- our estimates don't change much in comparison to the varying intercept/slope model, probably becasue the estimation of the correlation is quite poor (i.e., there's a lot of uncertainty, see the plot and/or model summary below)
+
+```{r}
+plot(fit_N400_h, N = 6)
+```
+
+```{r}
+fit_N400_h
+```
+
+- we're almost at the "maximal" hierarchical model [@barr_random_2013-2]
+  + i.e., model with all by-participant and -item group-level variance components allowed by the experimental design and a full variance covariance matrix for all the group-level paramters
+  + not all variance components are allowed by the design: between-group manipulations cannot have variance components
+
+### By-subjects and by-items correlated varying intercept varying slopes model ($M_{sih}$)
+
+- we will now allow for differences in intercepts (mean voltage) *and* slopes (effects of predictability) across subjects and across items
+- in typical Latin square designs, subjects and items are said to be *crossed random effects*: each subject sees exactly one instance of each item
+  + we assume a possible correlation between varying intercepts and slopes by subjects, and another by items
+  
+- in $M_{sih}$, we model the EEG data with the following assumptions:
+
+1. EEG averages for the N400 spatio-temporal window are normally distributed
+2. Some aspects of the mean signal voltage and of the effect of predictability depend on the subject, i.e., we assume group-level intercepts and slopes and a correlation between them by-participant
+3. same as above for item: some dependence in observed effects and mean voltage based on item
+4. there is a linear relationship between cloze and the EEG signal for the trial
+
+- the likelihood is:
+
+$$
+\begin{multline}
+signal_n \sim \mathit{Normal}(\alpha + u_{subj[n],1} + w_{item[n],1} + \\ c\_cloze_n \cdot  (\beta + u_{subj[n],2}+ w_{item[n],2}), \sigma)
+\end{multline}
+$$
+
+- where the index $j$ represents each item
+
+- and our priors are:
+
+$$
+\begin{aligned}
+\tau_{u_1} &\sim \mathit{Normal}_+(0,20)\\
+\tau_{u_2} &\sim \mathit{Normal}_+(0,20)\\
+\rho_u &\sim \mathit{LKJcorr}(2) \\
+\tau_{w_1} &\sim \mathit{Normal}_+(0,20)\\
+\tau_{w_2} &\sim \mathit{Normal}_+(0,20)\\
+\rho_w &\sim \mathit{LKJcorr}(2) \\
+\end{aligned}
+$$
+
+- we set identical priors for by-items group-level effects as for by-subject level effects because we don't have any differentiated prior information about subject-level vs. item-level variation
+
+```{r}
+prior_sih_full <-
+  c(
+    prior(normal(0, 10), class = Intercept),
+    prior(normal(0, 10), class = b, coef = c_cloze),
+    prior(normal(0, 50), class = sigma),
+    prior(normal(0, 20),
+      class = sd, coef = Intercept,
+      group = subj
+    ),
+    prior(normal(0, 20),
+      class = sd, coef = c_cloze,
+      group = subj
+    ),
+    prior(lkj(2), class = cor, group = subj),
+    prior(normal(0, 20),
+      class = sd, coef = Intercept,
+      group = item
+    ),
+    prior(normal(0, 20),
+      class = sd, coef = c_cloze,
+      group = item
+    ),
+    prior(lkj(2), class = cor, group = item)
+  )
+fit_N400_sih <- brm(n400 ~ c_cloze + (c_cloze | subj) +
+                      (c_cloze | item),
+                    prior = prior_sih_full,
+                    data = df_eeg)
+```
+
+- but we can also simplify the call to `brms` when assigning the same priors to the by-subject and -item parameters:
+
+```{r}
+prior_sih <-
+  c(
+    prior(normal(0, 10), class = Intercept),
+    prior(normal(0, 10), class = b),
+    prior(normal(0, 50), class = sigma),
+    prior(normal(0, 20), class = sd),
+    prior(lkj(2), class = cor)
+  )
+fit_N400_sih <- brm(n400 ~ c_cloze + (c_cloze | subj) +
+                      (c_cloze | item),
+                    prior = prior_sih,
+                    data = df_eeg
+)
+```
+
+```{r}
+fit_N400_sih
+```
+
+```{r}
+plot(fit_N400_sih, N = 9)
+```
+
+- again, the estimate of the effect of cloze remains pretty much unchanged
+  + the correlation parameter for both by-participant and -item intercepts and slopes have a lot of uncertainty 
+
+### Beyond the maximal model–Distributional regression models
+
+- we can look at how our model captures the signal in our data overall 
+
+```{r}
+pp_check(fit_N400_sih, ndraws = 50, type = "dens_overlay") 
+```
+
+
+- or by-participant
+
+```{r}
+ppc_dens_overlay_grouped(df_eeg$n400,
+  yrep =
+    posterior_predict(fit_N400_sih,
+      ndraws = 100
+    ),
+  group = df_eeg$subj
+) +
+  xlab("Signal in the N400 spatiotemporal window")
+```
+
+- looks like some subjects aren't fitted very well
+
+## A hierarchical log-normal model: the Stroop effect
+
+### A correlated varying intercept varying slopes log-normal model
+
+#### Sensitivity analysis
+
+## Why fitting a Bayesian hierarchical model is worth the effort
