@@ -11,7 +11,7 @@ format:
     code-overflow: wrap
 editor_options: 
   chunk_output_type: console
-bibliography: references.json
+# bibliography: references.json
 biblio-style: apalike
 ---
 
@@ -40,6 +40,9 @@ knitr::opts_chunk$set(echo = T, # print chunks?
 
 # suppress scientific notation
 options(scipen=999)
+
+# play a sound if error encountered
+options(error = function() {beepr::beep(9)})
 
 # load packages
 ## create list of package names
@@ -2715,4 +2718,33 @@ pp_check(fit_recall,
 - notice that the likelihood is set to 0 for our unobserved set size values of 3, 5, and 7
   + this is because we didn't actually *observe* any data for these values, so the likelihood is set to 0
   + however, the posterior predictive distributions are still caluclated, and we could use these as priors for a subsequent replication where we added these values
+
+# Ch. 5 - Bayesian hierarchical models
+
+- **exchangeability** is the Bayesian aalog of "independent and identically distributed" ($iid$)that appears regularly in classical (i.e., frequentist) statistics
+
+## Exchangeability and hierarchical models
+
+- the idea of exchangeability is as follows:
+  + we treat each level of a group (e.g., participant id's) as exchangeable, so we can reassign the indices arbitrarily and lose no information
+  + we believe this for the observations within each level in the group as well (e.g., trials within a participant)
+  + when we include predictors at the level of the observations, these predictors correspond to experimental manipulations (e.g., attentional load, item number, cloze probability, etc) or maybe also at the group level these predictors indicate characteristics of the levels in the group (e.g., memory span, reading level, etc.)
+  + the conditional distributions given these explanatory variables would be exchangeable, i.e., our predictors incorporate all the info that is *not* exchangeable
+  + this is why *item* number is an appropriate cluster, but not *trial* number: if we re-assign the item numbers there is no difference in the expected affects (it's a *factor*), but *trial* number encodes some information that is useful e.g., in terms of fatigue or practice effects
+
+- even if we aren't interested in specific cluster-level estimates, hierarchical models allow us to *generalise* to the underlying population (subjects, items) from which the clusters in the sampel were drawn
+
+- exchangeability is important in Bayesian stats because of a theorem called the **Representation Theorem**
+  + this theorem states that if a sequence of random variables is exchangeable, then the prior distributions on the parameters in a model are a necessary consequence
+  + priors are not merely an arbitrary addition to the frequentist modeling approach
+  
+
+  
+```{r}
+system("say -v Moira your script has finished running")
+beepr::beep(sound = "mario")
+BRRR::skrrrahh_list()
+BRRR::skrrrahh("biggie")
+```
+  
   

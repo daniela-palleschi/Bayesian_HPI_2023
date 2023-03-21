@@ -282,3 +282,135 @@ My work:
 - posterior up to proportionality is$[\theta^{a-1}(1-\theta)^{b-1}][\theta(1-\theta)\sum_{i=1}^n x_i$
 - sum up the exponentials on either side (and if there's no exponential then add a +1 cause every number is to the power of 1): $\theta^{a + 1 - 1}(1-\theta)^{b + \sum_{i=1}^n x_i - 1}$
 - and cancel out the $^{-1}$: $\theta^{a + 1}(1-\theta)^{b + \sum_{i=1}^n x_i}$
+
+# Chapter 5 - Bayesian hierachical models
+
+## Exercise 5.1 A hierarchical model (normal likelihood) of cognitive load on pupil size.
+
+As in section 4.1, we focus on the effect of cognitive load on pupil size, but this time we look at all the subjects of Wahn et al. (2016):
+
+```{r}
+data("df_pupil_complete")
+df_pupil_complete
+```
+
+You should be able to now fit a “maximal” model (correlated varying intercept and slopes for subjects) assuming a normal likelihood. Base your priors in the priors discussed in section 4.1.
+
+```{r}
+df_pupil_complete <- df_pupil_complete %>%
+  mutate(c_load = load-mean(load))
+```
+
+```{r}
+fit_pupil <- brm(p_size ~ 1 + c_load + 
+                   (c_load | subj), 
+                 data = df_pupil_complete,
+                 family = gaussian(),
+                 prior = c(
+                   prior(normal(1000, 500), class = Intercept),
+                   prior(normal(0, 1000), class = sigma),
+                   prior(normal(0, 100), class = b, coef = c_load),
+                   prior(normal(0, 1000), class = sd),
+                   prior(lkj(2), class = cor)
+                 ) )
+```
+
+a. Examine the effect of load on pupil size, and the average pupil size. What do you conclude?
+:::{.callout-tip}
+```{r}
+fit_pupil
+```
+
+- 95% CrI crosses 0: quite a bit of uncertainty
+
+- alternatively, to only print `c_load` 
+```{r}
+posterior_summary(fit_pupil, variable = "b_c_load")
+```
+
+- but the intercept is quite large:
+```{r}
+posterior_summary(fit_pupil, variable = "b_Intercept")
+```
+
+- even though we assumed it wouldn't be
+
+```{r}
+brms::prior_summary(fit_pupil)
+```
+
+- overly informative prior for the intercept?
+:::
+
+b. Do a sensitivity analysis for the prior on the intercept ($\alpha$). What is the estimate of the effect ($\beta$) under different priors?
+:::{.callout-tip}
+
+- try a *wider* prior for $\alpha$
+
+$$
+\alpha \sim Normal(3000,1000)
+$$
+
+```{r}
+fit_pupil_2 <- brm(p_size ~ 1 + c_load + 
+                   (c_load | subj), 
+                 data = df_pupil_complete,
+                 family = gaussian(),
+                 prior = c(
+                   prior(normal(3000, 1000), class = Intercept),
+                   prior(normal(0, 1000), class = sigma),
+                   prior(normal(0, 100), class = b, coef = c_load),
+                   prior(normal(0, 1000), class = sd),
+                   prior(lkj(2), class = cor)
+                 ) )
+```
+
+:::
+
+c. Is the effect of load consistent across subjects? Investigate this visually.
+
+
+
+## Exercise 5.2 Are subject relatives easier to process than object relatives (log-normal likelihood)?
+
+We begin with a classic question from the psycholinguistics literature: Are subject relatives easier to process than object relatives? The data come from Experiment 1 in a paper by Grodner and Gibson (2005).
+
+Scientific question: Is there a subject relative advantage in reading?
+
+Grodner and Gibson (2005) investigate an old claim in psycholinguistics that object relative clause (ORC) sentences are more difficult to process than subject relative clause (SRC) sentences. One explanation for this predicted difference is that the distance between the relative clause verb (sent in the example below) and the head noun phrase of the relative clause (reporter in the example below) is longer in ORC vs. SRC. Examples are shown below. The relative clause is shown in square brackets.
+
+(1a) The reporter [who the photographer sent to the editor] was hoping for a good story. (ORC)
+
+(1b) The reporter [who sent the photographer to the editor] was hoping for a good story. (SRC)
+
+The underlying explanation has to do with memory processes: Shorter linguistic dependencies are easier to process due to either reduced interference or decay, or both. For implemented computational models that spell this point out, see Lewis and Vasishth (2005) and Engelmann, Jäger, and Vasishth (2020).
+
+In the Grodner and Gibson data, the dependent measure is reading time at the relative clause verb, (e.g., sent) of different sentences with either ORC or SRC. The dependent variable is in milliseconds and was measured in a self-paced reading task. Self-paced reading is a task where subjects read a sentence or a short text word-by-word or phrase-by-phrase, pressing a button to get each word or phrase displayed; the preceding word disappears every time the button is pressed. In 6.1, we provide a more detailed explanation of this experimental method.
+
+For this experiment, we are expecting longer reading times at the relative clause verbs of ORC sentences in comparison to the relative clause verb of SRC sentences.
+
+```{r}
+data("df_gg05_rc")
+df_gg05_rc
+```
+
+You should use a sum coding for the predictors. Here, object relative clauses ("objgaps") are coded +1, subject relative clauses -1.
+ 
+ You should be able to now fit a “maximal” model (correlated varying intercept and slopes for subjects and for items) assuming a log-normal likelihood.
+
+a. Examine the effect of relative clause attachment site (the predictor `c_cond`) on reading times RT ($\beta$).
+b. Estimate the median difference between relative clause attachment sites in milliseconds, and report the mean and 95% CI.
+c. Do a sensitivity analysis. What is the estimate of the effect ($\beta$) under different priors? What is the difference in milliseconds between conditions under different priors?
+
+
+## Exercise 5.3
+
+## Exercise 5.4
+
+## Exercise 5.5
+
+## Exercise 5.6
+
+## Exercise 5.7
+
+## Exercise 5.8
